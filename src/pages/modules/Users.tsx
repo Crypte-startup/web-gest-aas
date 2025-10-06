@@ -6,8 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Shield, Users, UserPlus, Copy, Eye, EyeOff, Plus, X } from 'lucide-react';
+import { Settings, Shield, Users, UserPlus, Copy, Eye, EyeOff, Plus, X, Edit, Trash2, KeyRound } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -33,6 +34,286 @@ interface UserWithRole {
   full_name: string;
   roles: AppRole[];
 }
+
+interface EditUserDialogProps {
+  user: UserWithRole;
+  onUserUpdated: () => void;
+}
+
+const EditUserDialog = ({ user, onUserUpdated }: EditUserDialogProps) => {
+  const [open, setOpen] = useState(false);
+  const [fullName, setFullName] = useState(user.full_name);
+  const [email, setEmail] = useState(user.email);
+  const [loading, setLoading] = useState(false);
+
+  const handleUpdate = async () => {
+    if (!fullName.trim() || !email.trim()) {
+      toast.error('Tous les champs sont requis');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-user`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+          email,
+          full_name: fullName,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erreur lors de la mise à jour');
+      }
+
+      toast.success('Utilisateur mis à jour avec succès');
+      setOpen(false);
+      onUserUpdated();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm">
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Modifier l'utilisateur</DialogTitle>
+          <DialogDescription>
+            Modifier les informations de l'utilisateur
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="edit-fullName">Nom complet</Label>
+            <Input
+              id="edit-fullName"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="edit-email">Email</Label>
+            <Input
+              id="edit-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <Button onClick={handleUpdate} disabled={loading} className="w-full">
+            {loading ? 'Mise à jour...' : 'Mettre à jour'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+interface ResetPasswordDialogProps {
+  user: UserWithRole;
+}
+
+const ResetPasswordDialog = ({ user }: ResetPasswordDialogProps) => {
+  const [open, setOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const generatePassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+    let password = '';
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setNewPassword(password);
+  };
+
+  const handleReset = async () => {
+    if (!newPassword) {
+      toast.error('Veuillez générer un mot de passe');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reset-user-password`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+          new_password: newPassword,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erreur lors de la réinitialisation');
+      }
+
+      toast.success('Mot de passe réinitialisé avec succès');
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyPassword = () => {
+    navigator.clipboard.writeText(newPassword);
+    toast.success('Mot de passe copié');
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm">
+          <KeyRound className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Réinitialiser le mot de passe</DialogTitle>
+          <DialogDescription>
+            Générer un nouveau mot de passe pour {user.full_name}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label>Nouveau mot de passe</Label>
+            <div className="flex gap-2 mt-2">
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                value={newPassword}
+                readOnly
+                placeholder="Cliquez sur Générer"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowPassword(!showPassword)}
+                disabled={!newPassword}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={copyPassword}
+                disabled={!newPassword}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <Button onClick={generatePassword} variant="outline" className="w-full">
+            Générer un mot de passe
+          </Button>
+          <Button onClick={handleReset} disabled={loading || !newPassword} className="w-full">
+            {loading ? 'Réinitialisation...' : 'Réinitialiser le mot de passe'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+interface DeleteUserDialogProps {
+  user: UserWithRole;
+  currentUserId: string;
+  onUserDeleted: () => void;
+}
+
+const DeleteUserDialog = ({ user, currentUserId, onUserDeleted }: DeleteUserDialogProps) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleDelete = async () => {
+    setLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erreur lors de la suppression');
+      }
+
+      toast.success('Utilisateur supprimé avec succès');
+      onUserDeleted();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Cannot delete self
+  if (user.id === currentUserId) {
+    return null;
+  }
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant="ghost" size="sm">
+          <Trash2 className="h-4 w-4 text-destructive" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Cette action est irréversible. L'utilisateur <strong>{user.full_name}</strong> ({user.email}) 
+            sera définitivement supprimé avec tous ses rôles.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Annuler</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDelete}
+            disabled={loading}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {loading ? 'Suppression...' : 'Supprimer'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};
 
 interface ManageRolesDialogProps {
   user: UserWithRole;
@@ -499,12 +780,24 @@ const UsersManagement = () => {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <ManageRolesDialog 
-                        user={user} 
-                        allRoles={ROLES}
-                        onRoleAdded={fetchUsers}
-                        onRoleRemoved={fetchUsers}
-                      />
+                      <div className="flex items-center justify-end gap-1">
+                        <EditUserDialog 
+                          user={user}
+                          onUserUpdated={fetchUsers}
+                        />
+                        <ResetPasswordDialog user={user} />
+                        <ManageRolesDialog 
+                          user={user} 
+                          allRoles={ROLES}
+                          onRoleAdded={fetchUsers}
+                          onRoleRemoved={fetchUsers}
+                        />
+                        <DeleteUserDialog 
+                          user={user}
+                          currentUserId={user?.id || ''}
+                          onUserDeleted={fetchUsers}
+                        />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
