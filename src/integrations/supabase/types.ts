@@ -17,32 +17,59 @@ export type Database = {
       clients: {
         Row: {
           address: string | null
+          adresse_ecole: string | null
+          classe: string | null
           created_at: string
           created_by: string | null
+          date_naissance: string | null
+          domicile: string | null
+          ecole: string | null
           email: string | null
           id: string
           name: string
           phone: string | null
+          photo_url: string | null
+          postnom: string | null
+          prenom: string | null
+          trajet: string | null
           updated_at: string
         }
         Insert: {
           address?: string | null
+          adresse_ecole?: string | null
+          classe?: string | null
           created_at?: string
           created_by?: string | null
+          date_naissance?: string | null
+          domicile?: string | null
+          ecole?: string | null
           email?: string | null
           id?: string
           name: string
           phone?: string | null
+          photo_url?: string | null
+          postnom?: string | null
+          prenom?: string | null
+          trajet?: string | null
           updated_at?: string
         }
         Update: {
           address?: string | null
+          adresse_ecole?: string | null
+          classe?: string | null
           created_at?: string
           created_by?: string | null
+          date_naissance?: string | null
+          domicile?: string | null
+          ecole?: string | null
           email?: string | null
           id?: string
           name?: string
           phone?: string | null
+          photo_url?: string | null
+          postnom?: string | null
+          prenom?: string | null
+          trajet?: string | null
           updated_at?: string
         }
         Relationships: []
