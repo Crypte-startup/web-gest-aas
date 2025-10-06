@@ -16,7 +16,6 @@ const receiptSchema = z.object({
   motif: z.string().min(1, 'Le motif est requis').max(500),
   currency: z.enum(['USD', 'CDF']),
   amount: z.string().min(1, 'Le montant est requis'),
-  entry_id: z.string().min(1, 'L\'ID d\'entrée est requis'),
 });
 
 type ReceiptFormData = z.infer<typeof receiptSchema>;
@@ -37,9 +36,30 @@ const ReceiptForm = ({ receipt, onSuccess, onCancel }: ReceiptFormProps) => {
       motif: receipt?.motif || '',
       currency: receipt?.currency || 'USD',
       amount: receipt?.amount?.toString() || '',
-      entry_id: receipt?.entry_id || '',
     },
   });
+
+  const generateEntryId = async () => {
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
+    
+    const { data: existingReceipts } = await supabase
+      .from('ledger')
+      .select('entry_id')
+      .eq('entry_kind', 'LOGISTIQUE')
+      .like('entry_id', `LOG-${dateStr}-%`)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    let counter = 1;
+    if (existingReceipts && existingReceipts.length > 0) {
+      const lastId = existingReceipts[0].entry_id;
+      const lastCounter = parseInt(lastId.split('-')[2]);
+      counter = lastCounter + 1;
+    }
+
+    return `LOG-${dateStr}-${counter.toString().padStart(3, '0')}`;
+  };
 
   const onSubmit = async (data: ReceiptFormData) => {
     setIsLoading(true);
@@ -55,11 +75,13 @@ const ReceiptForm = ({ receipt, onSuccess, onCancel }: ReceiptFormProps) => {
         return;
       }
 
+      const entryId = receipt ? receipt.entry_id : await generateEntryId();
+
       const receiptData = {
         motif: data.motif,
         currency: data.currency as Database['public']['Enums']['currency'],
         amount: parseFloat(data.amount),
-        entry_id: data.entry_id,
+        entry_id: entryId,
         entry_kind: 'LOGISTIQUE',
         created_by: user.id,
         status: 'ENREGISTRE' as Database['public']['Enums']['entry_status'],
@@ -103,6 +125,7 @@ const ReceiptForm = ({ receipt, onSuccess, onCancel }: ReceiptFormProps) => {
   };
 
   const handlePrint = () => {
+    const entryId = receipt?.entry_id || 'En attente...';
     const printContent = `
       <html>
         <head>
@@ -118,7 +141,7 @@ const ReceiptForm = ({ receipt, onSuccess, onCancel }: ReceiptFormProps) => {
         <body>
           <div class="receipt">
             <h1>Reçu Logistique</h1>
-            <div class="field"><span class="label">ID d'entrée:</span> ${form.getValues('entry_id')}</div>
+            <div class="field"><span class="label">ID d'entrée:</span> ${entryId}</div>
             <div class="field"><span class="label">Motif:</span> ${form.getValues('motif')}</div>
             <div class="field"><span class="label">Devise:</span> ${form.getValues('currency')}</div>
             <div class="field"><span class="label">Montant:</span> ${form.getValues('amount')} ${form.getValues('currency')}</div>
@@ -140,19 +163,12 @@ const ReceiptForm = ({ receipt, onSuccess, onCancel }: ReceiptFormProps) => {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="entry_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>ID d'entrée</FormLabel>
-              <FormControl>
-                <Input {...field} placeholder="LOG-001" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {receipt && (
+          <div className="p-3 bg-muted rounded-md">
+            <span className="text-sm font-medium">ID d'entrée: </span>
+            <span className="text-sm font-mono">{receipt.entry_id}</span>
+          </div>
+        )}
 
         <FormField
           control={form.control}
