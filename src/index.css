@@ -29,11 +29,11 @@ All colors MUST be HSL.
     --ring: 142 76% 36%;
     --radius: 0.5rem;
     --sidebar-background: 220 14% 95%;
-    --sidebar-foreground: 224 71% 10%;
+    --sidebar-foreground: 0 0% 0%;
     --sidebar-primary: 142 76% 36%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 14% 90%;
-    --sidebar-accent-foreground: 224 71% 10%;
+    --sidebar-accent-foreground: 0 0% 0%;
     --sidebar-border: 220 13% 85%;
     --sidebar-ring: 142 76% 36%;
   }
