@@ -49,44 +49,59 @@ export type Database = {
       }
       employees: {
         Row: {
+          adresse: string | null
           created_at: string
           created_by: string | null
           currency: Database["public"]["Enums"]["currency"]
+          date_naissance: string | null
           department: string | null
           email: string | null
-          full_name: string
+          full_name: string | null
           hire_date: string | null
           id: string
+          nom: string | null
           phone: string | null
           position: string | null
+          postnom: string | null
+          prenom: string | null
           salary: number | null
           updated_at: string
         }
         Insert: {
+          adresse?: string | null
           created_at?: string
           created_by?: string | null
           currency?: Database["public"]["Enums"]["currency"]
+          date_naissance?: string | null
           department?: string | null
           email?: string | null
-          full_name: string
+          full_name?: string | null
           hire_date?: string | null
           id?: string
+          nom?: string | null
           phone?: string | null
           position?: string | null
+          postnom?: string | null
+          prenom?: string | null
           salary?: number | null
           updated_at?: string
         }
         Update: {
+          adresse?: string | null
           created_at?: string
           created_by?: string | null
           currency?: Database["public"]["Enums"]["currency"]
+          date_naissance?: string | null
           department?: string | null
           email?: string | null
-          full_name?: string
+          full_name?: string | null
           hire_date?: string | null
           id?: string
+          nom?: string | null
           phone?: string | null
           position?: string | null
+          postnom?: string | null
+          prenom?: string | null
           salary?: number | null
           updated_at?: string
         }
