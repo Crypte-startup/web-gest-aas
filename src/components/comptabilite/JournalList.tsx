@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Printer } from 'lucide-react';
 
 interface Transaction {
   id: string;
@@ -27,7 +28,7 @@ const JournalList = () => {
       const { data, error } = await supabase
         .from('ledger')
         .select('*')
-        .eq('entry_kind', 'COMPTABILITE')
+        .eq('status', 'VALIDE')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -57,11 +58,72 @@ const JournalList = () => {
   };
 
   const getTypeBadge = (type: string) => {
-    return type === 'RECETTE' ? (
-      <Badge className="bg-green-600">Recette</Badge>
-    ) : (
-      <Badge className="bg-red-600">Dépense</Badge>
-    );
+    if (type === 'RECETTE') {
+      return <Badge className="bg-green-600">Recette</Badge>;
+    } else if (type === 'DEPENSE') {
+      return <Badge className="bg-red-600">Dépense</Badge>;
+    } else {
+      return <Badge variant="outline">{type}</Badge>;
+    }
+  };
+
+  const handlePrint = () => {
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Journal Comptable</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { text-align: center; margin-bottom: 30px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .text-right { text-align: right; }
+            .print-date { text-align: right; margin-bottom: 20px; }
+          </style>
+        </head>
+        <body>
+          <h1>Journal Comptable</h1>
+          <div class="print-date">Date d'impression: ${new Date().toLocaleDateString('fr-FR')}</div>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Client</th>
+                <th>Motif</th>
+                <th>Devise</th>
+                <th class="text-right">Montant</th>
+                <th>Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${transactions.map(t => `
+                <tr>
+                  <td>${t.entry_id}</td>
+                  <td>${new Date(t.created_at).toLocaleDateString('fr-FR')}</td>
+                  <td>${t.entry_kind}</td>
+                  <td>${t.client_name || '-'}</td>
+                  <td>${t.motif || '-'}</td>
+                  <td>${t.currency}</td>
+                  <td class="text-right">${t.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td>${t.status}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
+    }
   };
 
   if (isLoading) {
@@ -75,13 +137,20 @@ const JournalList = () => {
   if (transactions.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        Aucune transaction dans le journal
+        Aucune transaction validée dans le journal
       </div>
     );
   }
 
   return (
-    <div className="rounded-md border">
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={handlePrint} variant="outline">
+          <Printer className="h-4 w-4 mr-2" />
+          Imprimer le journal
+        </Button>
+      </div>
+      <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -115,6 +184,7 @@ const JournalList = () => {
           ))}
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 };
