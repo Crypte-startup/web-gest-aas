@@ -1,14 +1,90 @@
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package, FileText, CheckCircle, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Package, FileText, CheckCircle, Clock, Plus } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import ReceiptForm from '@/components/logistique/ReceiptForm';
+import ReceiptList from '@/components/logistique/ReceiptList';
 
 const Logistique = () => {
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingReceipt, setEditingReceipt] = useState<any>(null);
+
+  const { data: receipts = [], refetch } = useQuery({
+    queryKey: ['logistics-receipts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ledger')
+        .select('*')
+        .eq('entry_kind', 'LOGISTIQUE')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const totalReceipts = receipts.length;
+  const pendingReceipts = receipts.filter(r => 
+    r.status === 'ENREGISTRE' || r.status === 'PENDING_RESP' || r.status === 'PENDING_ADMIN'
+  ).length;
+  const approvedReceipts = receipts.filter(r => r.status === 'APPROUVE' || r.status === 'VALIDE').length;
+  
+  const totalAmount = receipts
+    .filter(r => r.status === 'APPROUVE' || r.status === 'VALIDE')
+    .reduce((sum, r) => {
+      if (r.currency === 'USD') {
+        return sum + Number(r.amount);
+      }
+      return sum;
+    }, 0);
+
+  const handleEdit = (receipt: any) => {
+    setEditingReceipt(receipt);
+    setIsFormOpen(true);
+  };
+
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setEditingReceipt(null);
+  };
+
+  const handleSuccess = () => {
+    refetch();
+    handleCloseForm();
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Logistique</h1>
-        <p className="text-muted-foreground">
-          Gestion des reçus et opérations logistiques
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Logistique</h1>
+          <p className="text-muted-foreground">
+            Gestion des reçus et opérations logistiques
+          </p>
+        </div>
+        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={() => setEditingReceipt(null)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nouveau reçu
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingReceipt ? 'Modifier le reçu' : 'Nouveau reçu logistique'}
+              </DialogTitle>
+            </DialogHeader>
+            <ReceiptForm 
+              receipt={editingReceipt} 
+              onSuccess={handleSuccess}
+              onCancel={handleCloseForm}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -18,7 +94,7 @@ const Logistique = () => {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">{totalReceipts}</div>
             <p className="text-xs text-muted-foreground">
               Reçus logistiques
             </p>
@@ -31,7 +107,7 @@ const Logistique = () => {
             <Clock className="h-4 w-4 text-orange-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">{pendingReceipts}</div>
             <p className="text-xs text-muted-foreground">
               À valider
             </p>
@@ -44,7 +120,7 @@ const Logistique = () => {
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">{approvedReceipts}</div>
             <p className="text-xs text-muted-foreground">
               Reçus approuvés
             </p>
@@ -57,7 +133,7 @@ const Logistique = () => {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$0.00</div>
+            <div className="text-2xl font-bold">${totalAmount.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
               Opérations logistiques
             </p>
@@ -76,9 +152,11 @@ const Logistique = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            Aucun reçu logistique pour le moment
-          </div>
+          <ReceiptList 
+            receipts={receipts} 
+            onEdit={handleEdit}
+            onDelete={refetch}
+          />
         </CardContent>
       </Card>
     </div>
