@@ -1,11 +1,13 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calculator, Package, Users, UserCircle, ShoppingCart, TrendingUp } from 'lucide-react';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { roles, loading } = useUserRole(user?.id);
+  const navigate = useNavigate();
 
   const modules = [
     {
@@ -15,6 +17,7 @@ const Dashboard = () => {
       roles: ['admin', 'resp_compta', 'caissier'],
       color: 'text-blue-600',
       bgColor: 'bg-blue-100',
+      url: '/dashboard/comptabilite',
     },
     {
       title: 'Logistique',
@@ -23,6 +26,7 @@ const Dashboard = () => {
       roles: ['admin', 'resp_log', 'prepose_log'],
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
+      url: '/dashboard/logistique',
     },
     {
       title: 'Clientèle',
@@ -31,6 +35,7 @@ const Dashboard = () => {
       roles: ['admin', 'resp_clientele', 'prepose_clientele'],
       color: 'text-green-600',
       bgColor: 'bg-green-100',
+      url: '/dashboard/clientele',
     },
     {
       title: 'Ressources Humaines',
@@ -39,6 +44,7 @@ const Dashboard = () => {
       roles: ['admin', 'resp_rh', 'prepose_rh'],
       color: 'text-orange-600',
       bgColor: 'bg-orange-100',
+      url: '/dashboard/rh',
     },
     {
       title: 'Commercial',
@@ -47,6 +53,7 @@ const Dashboard = () => {
       roles: ['admin', 'resp_comm', 'prepose_comm'],
       color: 'text-pink-600',
       bgColor: 'bg-pink-100',
+      url: '/dashboard/commercial',
     },
   ];
 
@@ -77,7 +84,11 @@ const Dashboard = () => {
         {accessibleModules.map((module) => {
           const Icon = module.icon;
           return (
-            <Card key={module.title} className="hover:shadow-lg transition-shadow">
+            <Card 
+              key={module.title} 
+              className="hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => navigate(module.url)}
+            >
               <CardHeader>
                 <div className={`inline-flex h-12 w-12 items-center justify-center rounded-lg ${module.bgColor} mb-2`}>
                   <Icon className={`h-6 w-6 ${module.color}`} />
