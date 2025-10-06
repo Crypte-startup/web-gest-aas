@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Settings, Shield, Users, UserPlus, Copy, Eye, EyeOff } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Settings, Shield, Users, UserPlus, Copy, Eye, EyeOff, Plus, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -32,6 +33,156 @@ interface UserWithRole {
   full_name: string;
   roles: AppRole[];
 }
+
+interface ManageRolesDialogProps {
+  user: UserWithRole;
+  allRoles: { value: AppRole; label: string }[];
+  onRoleAdded: () => void;
+  onRoleRemoved: () => void;
+}
+
+const ManageRolesDialog = ({ user, allRoles, onRoleAdded, onRoleRemoved }: ManageRolesDialogProps) => {
+  const [selectedRole, setSelectedRole] = useState<AppRole | ''>('');
+  const [loading, setLoading] = useState(false);
+
+  const availableRoles = allRoles.filter(role => !user.roles.includes(role.value));
+
+  const handleAddRole = async () => {
+    if (!selectedRole) return;
+    
+    setLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-user-roles`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'add',
+          user_id: user.id,
+          role: selectedRole,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erreur lors de l\'ajout du rôle');
+      }
+
+      toast.success('Rôle ajouté avec succès');
+      setSelectedRole('');
+      onRoleAdded();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveRole = async (role: AppRole) => {
+    if (user.roles.length === 1) {
+      toast.error('L\'utilisateur doit avoir au moins un rôle');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-user-roles`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'remove',
+          user_id: user.id,
+          role: role,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erreur lors de la suppression du rôle');
+      }
+
+      toast.success('Rôle retiré avec succès');
+      onRoleRemoved();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Settings className="h-4 w-4 mr-2" />
+          Gérer les rôles
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Gérer les rôles de {user.full_name}</DialogTitle>
+          <DialogDescription>
+            Ajouter ou retirer des rôles pour cet utilisateur
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          <div>
+            <Label className="text-sm font-medium">Rôles actuels</Label>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {user.roles.map(role => (
+                <Badge key={role} variant="secondary" className="flex items-center gap-1">
+                  {allRoles.find(r => r.value === role)?.label || role}
+                  <button
+                    onClick={() => handleRemoveRole(role)}
+                    disabled={loading}
+                    className="ml-1 hover:bg-destructive/20 rounded-full p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          {availableRoles.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="newRole">Ajouter un rôle</Label>
+              <div className="flex gap-2">
+                <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as AppRole)}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Sélectionner un rôle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableRoles.map(role => (
+                      <SelectItem key={role.value} value={role.value}>
+                        {role.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button onClick={handleAddRole} disabled={!selectedRole || loading}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 const UsersManagement = () => {
   const { user } = useAuth();
@@ -99,35 +250,32 @@ const UsersManagement = () => {
     const password = generatePassword();
 
     try {
-      // Create user via Supabase Auth admin API (needs service role key)
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          email,
+          password,
+          full_name: fullName,
+          role: selectedRole,
+        }),
       });
 
-      if (error) throw error;
+      const result = await response.json();
 
-      if (data.user) {
-        // Assign role
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: data.user.id,
-            role: selectedRole,
-          });
-
-        if (roleError) throw roleError;
-
-        setGeneratedPassword(password);
-        setShowPassword(true);
-        toast.success('Utilisateur créé avec succès');
-        fetchUsers();
+      if (!response.ok) {
+        throw new Error(result.error || 'Erreur lors de la création de l\'utilisateur');
       }
+
+      setGeneratedPassword(password);
+      setShowPassword(true);
+      toast.success('Utilisateur créé avec succès');
+      fetchUsers();
     } catch (error: any) {
       console.error('Error creating user:', error);
       toast.error(error.message || 'Erreur lors de la création de l\'utilisateur');
@@ -326,6 +474,7 @@ const UsersManagement = () => {
                   <TableHead>Nom complet</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Rôles</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -337,17 +486,25 @@ const UsersManagement = () => {
                       <div className="flex flex-wrap gap-1">
                         {user.roles.length > 0 ? (
                           user.roles.map(role => (
-                            <span
+                            <Badge
                               key={role}
-                              className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full"
+                              variant="secondary"
                             >
                               {ROLES.find(r => r.value === role)?.label || role}
-                            </span>
+                            </Badge>
                           ))
                         ) : (
                           <span className="text-muted-foreground text-sm">Aucun rôle</span>
                         )}
                       </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <ManageRolesDialog 
+                        user={user} 
+                        allRoles={ROLES}
+                        onRoleAdded={fetchUsers}
+                        onRoleRemoved={fetchUsers}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}
