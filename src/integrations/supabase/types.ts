@@ -74,6 +74,92 @@ export type Database = {
         }
         Relationships: []
       }
+      commercial_clients: {
+        Row: {
+          adresse: string | null
+          created_at: string
+          created_by: string | null
+          date_naissance: string | null
+          email: string | null
+          id: string
+          lieu_naissance: string | null
+          nom: string
+          postnom: string | null
+          prenom: string | null
+          sexe: string | null
+          updated_at: string
+        }
+        Insert: {
+          adresse?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_naissance?: string | null
+          email?: string | null
+          id?: string
+          lieu_naissance?: string | null
+          nom: string
+          postnom?: string | null
+          prenom?: string | null
+          sexe?: string | null
+          updated_at?: string
+        }
+        Update: {
+          adresse?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_naissance?: string | null
+          email?: string | null
+          id?: string
+          lieu_naissance?: string | null
+          nom?: string
+          postnom?: string | null
+          prenom?: string | null
+          sexe?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      devis: {
+        Row: {
+          client_id: string | null
+          client_name: string
+          created_at: string
+          created_by: string | null
+          devise: string
+          id: string
+          montant: number
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          client_name: string
+          created_at?: string
+          created_by?: string | null
+          devise: string
+          id?: string
+          montant: number
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string
+          created_at?: string
+          created_by?: string | null
+          devise?: string
+          id?: string
+          montant?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devis_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           adresse: string | null
@@ -133,6 +219,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      facture: {
+        Row: {
+          client_id: string | null
+          client_name: string
+          created_at: string
+          created_by: string | null
+          devise: string
+          id: string
+          montant: number
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          client_name: string
+          created_at?: string
+          created_by?: string | null
+          devise: string
+          id?: string
+          montant: number
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string
+          created_at?: string
+          created_by?: string | null
+          devise?: string
+          id?: string
+          montant?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facture_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ledger: {
         Row: {
