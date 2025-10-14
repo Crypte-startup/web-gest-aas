@@ -6,6 +6,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -27,6 +31,7 @@ const DevisForm = ({ open, onClose, devis, onSuccess }: DevisFormProps) => {
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<DevisFormData>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [clients, setClients] = useState<any[]>([]);
+  const [openCombobox, setOpenCombobox] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -132,18 +137,51 @@ const DevisForm = ({ open, onClose, devis, onSuccess }: DevisFormProps) => {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="client_id">Client *</Label>
-            <Select onValueChange={(value) => setValue('client_id', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner un client" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map((client) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.nom} {client.postnom} {client.prenom}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openCombobox}
+                  className="w-full justify-between"
+                >
+                  {selectedClientId
+                    ? clients.find((client) => client.id === selectedClientId)
+                        ? `${clients.find((client) => client.id === selectedClientId).nom} ${clients.find((client) => client.id === selectedClientId).postnom || ''} ${clients.find((client) => client.id === selectedClientId).prenom || ''}`.trim()
+                        : "Sélectionner un client..."
+                    : "Sélectionner un client..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <Command>
+                  <CommandInput placeholder="Rechercher un client..." />
+                  <CommandList>
+                    <CommandEmpty>Aucun client trouvé.</CommandEmpty>
+                    <CommandGroup>
+                      {clients.map((client) => (
+                        <CommandItem
+                          key={client.id}
+                          value={`${client.nom} ${client.postnom || ''} ${client.prenom || ''}`}
+                          onSelect={() => {
+                            setValue('client_id', client.id);
+                            setOpenCombobox(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedClientId === client.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {client.nom} {client.postnom} {client.prenom}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="space-y-2">

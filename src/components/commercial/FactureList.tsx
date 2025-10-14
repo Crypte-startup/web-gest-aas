@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Printer } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import FactureForm from './FactureForm';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -88,6 +88,40 @@ const FactureList = () => {
     fetchFactures();
   };
 
+  const handlePrint = (facture: Facture) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Facture - ${facture.client_name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { color: #333; }
+            .info { margin: 20px 0; }
+            .label { font-weight: bold; }
+            @media print {
+              button { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>FACTURE</h1>
+          <div class="info">
+            <p><span class="label">Client:</span> ${facture.client_name}</p>
+            <p><span class="label">Devise:</span> ${facture.devise}</p>
+            <p><span class="label">Montant:</span> ${facture.montant.toLocaleString()}</p>
+            <p><span class="label">Date:</span> ${new Date(facture.created_at).toLocaleDateString()}</p>
+          </div>
+          <button onclick="window.print()">Imprimer</button>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -125,6 +159,13 @@ const FactureList = () => {
                   <TableCell>{new Date(facture.created_at).toLocaleDateString()}</TableCell>
                   <TableCell className="text-center">
                     <div className="flex justify-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handlePrint(facture)}
+                      >
+                        <Printer className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
