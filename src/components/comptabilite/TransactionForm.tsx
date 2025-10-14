@@ -78,13 +78,14 @@ const TransactionForm = ({ onSuccess, onCancel }: TransactionFormProps) => {
         return;
       }
 
-      // Vérifier si l'utilisateur est resp_compta
+      // Vérifier si l'utilisateur est resp_compta ou caissier
       const { data: roles } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id);
 
-      const isRespCompta = roles?.some(r => r.role === 'resp_compta');
+      const autoValidateRoles = ['resp_compta', 'caissier', 'caissier1', 'caissier2', 'caissier3', 'caissier4', 'caissier5'];
+      const shouldAutoValidate = roles?.some(r => autoValidateRoles.includes(r.role));
 
       const entryId = await generateEntryId();
 
@@ -96,8 +97,8 @@ const TransactionForm = ({ onSuccess, onCancel }: TransactionFormProps) => {
         client_name: data.client_name,
         motif: data.motif,
         created_by: user.id,
-        // Le comptable (resp_compta) crée des transactions directement validées
-        status: (isRespCompta ? 'VALIDE' : 'ENREGISTRE') as Database['public']['Enums']['entry_status'],
+        // Le comptable et les caissiers créent des transactions directement validées
+        status: (shouldAutoValidate ? 'VALIDE' : 'ENREGISTRE') as Database['public']['Enums']['entry_status'],
       };
 
       const { error } = await supabase
@@ -108,7 +109,7 @@ const TransactionForm = ({ onSuccess, onCancel }: TransactionFormProps) => {
 
       toast({
         title: 'Succès',
-        description: isRespCompta 
+        description: shouldAutoValidate 
           ? 'Transaction validée et enregistrée avec succès' 
           : 'Transaction enregistrée avec succès',
       });
