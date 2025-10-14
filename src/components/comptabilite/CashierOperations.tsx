@@ -2,9 +2,22 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Printer, Trash2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useUserRole } from '@/hooks/useUserRole';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Transaction {
   id: string;
@@ -29,7 +42,11 @@ interface CashierData {
 const CashierOperations = () => {
   const [cashiersData, setCashiersData] = useState<CashierData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { isAdmin } = useUserRole(user?.id);
 
   const fetchCashierOperations = async () => {
     try {
@@ -136,6 +153,99 @@ const CashierOperations = () => {
     return labels[role] || role;
   };
 
+  const handlePrintCashier = (cashierData: CashierData) => {
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Journal - ${getRoleLabel(cashierData.role)}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { text-align: center; margin-bottom: 10px; }
+            .cashier-info { text-align: center; margin-bottom: 20px; font-size: 16px; color: #666; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .text-right { text-align: right; }
+            .print-date { text-align: right; margin-bottom: 20px; }
+          </style>
+        </head>
+        <body>
+          <h1>Journal des Opérations</h1>
+          <div class="cashier-info">${getRoleLabel(cashierData.role)} - ${cashierData.email}</div>
+          <div class="print-date">Date d'impression: ${new Date().toLocaleDateString('fr-FR')}</div>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Client</th>
+                <th>Motif</th>
+                <th>Devise</th>
+                <th class="text-right">Montant</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${cashierData.transactions.map(t => `
+                <tr>
+                  <td>${t.entry_id}</td>
+                  <td>${new Date(t.created_at).toLocaleDateString('fr-FR')}</td>
+                  <td>${t.entry_kind}</td>
+                  <td>${t.client_name || '-'}</td>
+                  <td>${t.motif || '-'}</td>
+                  <td>${t.currency}</td>
+                  <td class="text-right">${t.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
+  const handleDeleteTransaction = async () => {
+    if (!transactionToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from('ledger')
+        .delete()
+        .eq('id', transactionToDelete);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Succès',
+        description: 'Transaction supprimée avec succès',
+      });
+
+      fetchCashierOperations();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: error.message || 'Impossible de supprimer la transaction',
+      });
+    } finally {
+      setDeleteDialogOpen(false);
+      setTransactionToDelete(null);
+    }
+  };
+
+  const confirmDelete = (transactionId: string) => {
+    setTransactionToDelete(transactionId);
+    setDeleteDialogOpen(true);
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-8">
@@ -158,8 +268,14 @@ const CashierOperations = () => {
         <Card key={cashierData.userId}>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>{getRoleLabel(cashierData.role)}</span>
-              <Badge variant="outline">{cashierData.email}</Badge>
+              <div className="flex items-center gap-2">
+                <span>{getRoleLabel(cashierData.role)}</span>
+                <Badge variant="outline">{cashierData.email}</Badge>
+              </div>
+              <Button onClick={() => handlePrintCashier(cashierData)} variant="outline" size="sm">
+                <Printer className="h-4 w-4 mr-2" />
+                Imprimer
+              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -174,6 +290,7 @@ const CashierOperations = () => {
                     <TableHead>Motif</TableHead>
                     <TableHead>Devise</TableHead>
                     <TableHead className="text-right">Montant</TableHead>
+                    {isAdmin && <TableHead className="text-center">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -191,6 +308,17 @@ const CashierOperations = () => {
                           maximumFractionDigits: 2 
                         })}
                       </TableCell>
+                      {isAdmin && (
+                        <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => confirmDelete(transaction.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -199,6 +327,23 @@ const CashierOperations = () => {
           </CardContent>
         </Card>
       ))}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette transaction ? Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteTransaction}>
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

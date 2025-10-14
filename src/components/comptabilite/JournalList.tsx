@@ -5,8 +5,20 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Printer } from 'lucide-react';
+import { Loader2, Printer, Trash2 } from 'lucide-react';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
+import { useAuth } from '@/hooks/useAuth';
+import { useUserRole } from '@/hooks/useUserRole';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Transaction {
   id: string;
@@ -25,7 +37,11 @@ const JournalList = () => {
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [periodFilter, setPeriodFilter] = useState<string>('all');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { isAdmin } = useUserRole(user?.id);
 
   const fetchTransactions = async () => {
     try {
@@ -134,6 +150,40 @@ const JournalList = () => {
     } else {
       return <Badge variant="outline">{type}</Badge>;
     }
+  };
+
+  const handleDeleteTransaction = async () => {
+    if (!transactionToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from('ledger')
+        .delete()
+        .eq('id', transactionToDelete);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Succès',
+        description: 'Transaction supprimée avec succès',
+      });
+
+      fetchTransactions();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: error.message || 'Impossible de supprimer la transaction',
+      });
+    } finally {
+      setDeleteDialogOpen(false);
+      setTransactionToDelete(null);
+    }
+  };
+
+  const confirmDelete = (transactionId: string) => {
+    setTransactionToDelete(transactionId);
+    setDeleteDialogOpen(true);
   };
 
   const handlePrint = () => {
@@ -255,6 +305,7 @@ const JournalList = () => {
             <TableHead>Devise</TableHead>
             <TableHead className="text-right">Montant</TableHead>
             <TableHead>Statut</TableHead>
+            {isAdmin && <TableHead className="text-center">Actions</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -273,11 +324,39 @@ const JournalList = () => {
                 })}
               </TableCell>
               <TableCell>{getStatusBadge(transaction.status)}</TableCell>
+              {isAdmin && (
+                <TableCell className="text-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => confirmDelete(transaction.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>
       </Table>
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette transaction ? Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteTransaction}>
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
