@@ -3,8 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Printer } from 'lucide-react';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 
 interface Transaction {
   id: string;
@@ -20,7 +22,9 @@ interface Transaction {
 
 const JournalList = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [periodFilter, setPeriodFilter] = useState<string>('all');
   const { toast } = useToast();
 
   const fetchTransactions = async () => {
@@ -69,6 +73,50 @@ const JournalList = () => {
     };
   }, []);
 
+  useEffect(() => {
+    filterTransactionsByPeriod();
+  }, [transactions, periodFilter]);
+
+  const filterTransactionsByPeriod = () => {
+    if (periodFilter === 'all') {
+      setFilteredTransactions(transactions);
+      return;
+    }
+
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date;
+
+    switch (periodFilter) {
+      case 'daily':
+        startDate = startOfDay(now);
+        endDate = endOfDay(now);
+        break;
+      case 'weekly':
+        startDate = startOfWeek(now, { weekStartsOn: 1 });
+        endDate = endOfWeek(now, { weekStartsOn: 1 });
+        break;
+      case 'monthly':
+        startDate = startOfMonth(now);
+        endDate = endOfMonth(now);
+        break;
+      case 'yearly':
+        startDate = startOfYear(now);
+        endDate = endOfYear(now);
+        break;
+      default:
+        setFilteredTransactions(transactions);
+        return;
+    }
+
+    const filtered = transactions.filter(t => {
+      const transactionDate = new Date(t.created_at);
+      return transactionDate >= startDate && transactionDate <= endDate;
+    });
+
+    setFilteredTransactions(filtered);
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
       ENREGISTRE: 'secondary',
@@ -89,14 +137,25 @@ const JournalList = () => {
   };
 
   const handlePrint = () => {
+    const getPeriodLabel = () => {
+      switch (periodFilter) {
+        case 'daily': return 'Journalier';
+        case 'weekly': return 'Hebdomadaire';
+        case 'monthly': return 'Mensuel';
+        case 'yearly': return 'Annuel';
+        default: return 'Complet';
+      }
+    };
+
     const printContent = `
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Journal Comptable</title>
+          <title>Journal Comptable - ${getPeriodLabel()}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 20px; }
-            h1 { text-align: center; margin-bottom: 30px; }
+            h1 { text-align: center; margin-bottom: 10px; }
+            .period { text-align: center; margin-bottom: 20px; font-size: 16px; color: #666; }
             table { width: 100%; border-collapse: collapse; margin-top: 20px; }
             th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
             th { background-color: #f2f2f2; font-weight: bold; }
@@ -106,6 +165,7 @@ const JournalList = () => {
         </head>
         <body>
           <h1>Journal Comptable</h1>
+          <div class="period">Période: ${getPeriodLabel()}</div>
           <div class="print-date">Date d'impression: ${new Date().toLocaleDateString('fr-FR')}</div>
           <table>
             <thead>
@@ -121,7 +181,7 @@ const JournalList = () => {
               </tr>
             </thead>
             <tbody>
-              ${transactions.map(t => `
+              ${filteredTransactions.map(t => `
                 <tr>
                   <td>${t.entry_id}</td>
                   <td>${new Date(t.created_at).toLocaleDateString('fr-FR')}</td>
@@ -165,10 +225,22 @@ const JournalList = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center gap-4">
+        <Select value={periodFilter} onValueChange={setPeriodFilter}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Sélectionner la période" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Toutes les périodes</SelectItem>
+            <SelectItem value="daily">Journalier</SelectItem>
+            <SelectItem value="weekly">Hebdomadaire</SelectItem>
+            <SelectItem value="monthly">Mensuel</SelectItem>
+            <SelectItem value="yearly">Annuel</SelectItem>
+          </SelectContent>
+        </Select>
         <Button onClick={handlePrint} variant="outline">
           <Printer className="h-4 w-4 mr-2" />
-          Imprimer le journal
+          Imprimer
         </Button>
       </div>
       <div className="rounded-md border">
@@ -186,7 +258,7 @@ const JournalList = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {transactions.map((transaction) => (
+          {filteredTransactions.map((transaction) => (
             <TableRow key={transaction.id}>
               <TableCell className="font-mono text-sm">{transaction.entry_id}</TableCell>
               <TableCell>{new Date(transaction.created_at).toLocaleDateString('fr-FR')}</TableCell>

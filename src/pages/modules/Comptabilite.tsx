@@ -3,11 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calculator, TrendingUp, TrendingDown, Wallet, Plus, BookOpen, CheckCircle } from 'lucide-react';
+import { Calculator, TrendingUp, TrendingDown, Wallet, Plus, BookOpen, CheckCircle, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import TransactionForm from '@/components/comptabilite/TransactionForm';
 import JournalList from '@/components/comptabilite/JournalList';
 import ApprovalList from '@/components/comptabilite/ApprovalList';
+import CashierOperations from '@/components/comptabilite/CashierOperations';
 
 const Comptabilite = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -148,10 +149,14 @@ const Comptabilite = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="journal" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="journal">
                 <BookOpen className="h-4 w-4 mr-2" />
                 Journal
+              </TabsTrigger>
+              <TabsTrigger value="cashiers">
+                <Users className="h-4 w-4 mr-2" />
+                Opérations Caissiers
               </TabsTrigger>
               <TabsTrigger value="approval">
                 <CheckCircle className="h-4 w-4 mr-2" />
@@ -160,6 +165,9 @@ const Comptabilite = () => {
             </TabsList>
             <TabsContent value="journal" className="mt-4">
               <JournalList />
+            </TabsContent>
+            <TabsContent value="cashiers" className="mt-4">
+              <CashierOperations />
             </TabsContent>
             <TabsContent value="approval" className="mt-4">
               <ApprovalList />
