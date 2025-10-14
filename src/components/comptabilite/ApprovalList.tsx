@@ -47,6 +47,26 @@ const ApprovalList = () => {
 
   useEffect(() => {
     fetchReceipts();
+
+    // Subscribe to changes in ledger table
+    const channel = supabase
+      .channel('ledger_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'ledger',
+        },
+        () => {
+          fetchReceipts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleApprove = async (id: string) => {

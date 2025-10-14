@@ -78,6 +78,14 @@ const TransactionForm = ({ onSuccess, onCancel }: TransactionFormProps) => {
         return;
       }
 
+      // Vérifier si l'utilisateur est resp_compta
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
+
+      const isRespCompta = roles?.some(r => r.role === 'resp_compta');
+
       const entryId = await generateEntryId();
 
       const transactionData = {
@@ -88,7 +96,8 @@ const TransactionForm = ({ onSuccess, onCancel }: TransactionFormProps) => {
         client_name: data.client_name,
         motif: data.motif,
         created_by: user.id,
-        status: 'ENREGISTRE' as Database['public']['Enums']['entry_status'],
+        // Le comptable (resp_compta) crée des transactions directement validées
+        status: (isRespCompta ? 'VALIDE' : 'ENREGISTRE') as Database['public']['Enums']['entry_status'],
       };
 
       const { error } = await supabase
@@ -99,7 +108,9 @@ const TransactionForm = ({ onSuccess, onCancel }: TransactionFormProps) => {
 
       toast({
         title: 'Succès',
-        description: 'La transaction a été enregistrée avec succès',
+        description: isRespCompta 
+          ? 'Transaction validée et enregistrée avec succès' 
+          : 'Transaction enregistrée avec succès',
       });
 
       onSuccess();

@@ -46,6 +46,27 @@ const JournalList = () => {
 
   useEffect(() => {
     fetchTransactions();
+
+    // Subscribe to changes in ledger table
+    const channel = supabase
+      .channel('ledger_validated_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'ledger',
+          filter: 'status=eq.VALIDE',
+        },
+        () => {
+          fetchTransactions();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const getStatusBadge = (status: string) => {
