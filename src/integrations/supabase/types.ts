@@ -284,6 +284,11 @@ export type Database = {
         | "resp_rh"
         | "prepose_comm"
         | "resp_comm"
+        | "caissier1"
+        | "caissier2"
+        | "caissier3"
+        | "caissier4"
+        | "caissier5"
       currency: "USD" | "CDF"
       entry_status:
         | "ENREGISTRE"
@@ -430,6 +435,11 @@ export const Constants = {
         "resp_rh",
         "prepose_comm",
         "resp_comm",
+        "caissier1",
+        "caissier2",
+        "caissier3",
+        "caissier4",
+        "caissier5",
       ],
       currency: ["USD", "CDF"],
       entry_status: [
