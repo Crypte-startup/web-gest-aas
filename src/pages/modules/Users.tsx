@@ -594,6 +594,7 @@ const UsersManagement = () => {
   };
 
   const adminCount = users.filter(u => u.roles.includes('admin')).length;
+  const currentUserId = user?.id || '';
 
   return (
     <div className="space-y-6">
@@ -838,7 +839,7 @@ const UsersManagement = () => {
                         />
                         <DeleteUserDialog 
                           user={user}
-                          currentUserId={user?.id || ''}
+                          currentUserId={currentUserId}
                           onUserDeleted={fetchUsers}
                         />
                       </div>
