@@ -481,6 +481,8 @@ const UsersManagement = () => {
   const [generatedPassword, setGeneratedPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [useManualPassword, setUseManualPassword] = useState(false);
+  const [manualPassword, setManualPassword] = useState('');
 
   const generatePassword = () => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
@@ -531,9 +533,14 @@ const UsersManagement = () => {
       return;
     }
 
+    if (useManualPassword && !manualPassword.trim()) {
+      toast.error('Veuillez entrer un mot de passe');
+      return;
+    }
+
     setCreating(true);
     const email = `${userName.toLowerCase()}@acham.com`;
-    const password = generatePassword();
+    const password = useManualPassword ? manualPassword : generatePassword();
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -581,6 +588,8 @@ const UsersManagement = () => {
     setSelectedRole('prepose_clientele');
     setGeneratedPassword('');
     setShowPassword(false);
+    setUseManualPassword(false);
+    setManualPassword('');
     setIsCreateDialogOpen(false);
   };
 
@@ -646,6 +655,36 @@ const UsersManagement = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-3">
+                  <Label>Mot de passe</Label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="useManualPassword"
+                      checked={useManualPassword}
+                      onChange={(e) => setUseManualPassword(e.target.checked)}
+                      className="h-4 w-4 rounded border-input"
+                    />
+                    <Label htmlFor="useManualPassword" className="cursor-pointer font-normal">
+                      Définir un mot de passe manuellement
+                    </Label>
+                  </div>
+                  {useManualPassword && (
+                    <div>
+                      <Input
+                        type={showPassword ? 'text' : 'password'}
+                        value={manualPassword}
+                        onChange={(e) => setManualPassword(e.target.value)}
+                        placeholder="Entrer le mot de passe"
+                      />
+                    </div>
+                  )}
+                  {!useManualPassword && (
+                    <p className="text-sm text-muted-foreground">
+                      Un mot de passe sécurisé sera généré automatiquement
+                    </p>
+                  )}
                 </div>
                 <Button onClick={handleCreateUser} disabled={creating} className="w-full">
                   {creating ? 'Création...' : 'Créer l\'utilisateur'}
