@@ -15,8 +15,10 @@ const Comptabilite = () => {
   const [balances, setBalances] = useState({
     usd: 0,
     cdf: 0,
-    recettes: 0,
-    depenses: 0,
+    recettesUsd: 0,
+    recettesCdf: 0,
+    depensesUsd: 0,
+    depensesCdf: 0,
   });
 
   const fetchBalances = async () => {
@@ -29,22 +31,32 @@ const Comptabilite = () => {
       if (transactions) {
         let usd = 0;
         let cdf = 0;
-        let recettes = 0;
-        let depenses = 0;
+        let recettesUsd = 0;
+        let recettesCdf = 0;
+        let depensesUsd = 0;
+        let depensesCdf = 0;
 
         transactions.forEach((t) => {
           if (t.entry_kind === 'RECETTE') {
-            recettes += t.amount;
-            if (t.currency === 'USD') usd += t.amount;
-            else cdf += t.amount;
+            if (t.currency === 'USD') {
+              recettesUsd += t.amount;
+              usd += t.amount;
+            } else {
+              recettesCdf += t.amount;
+              cdf += t.amount;
+            }
           } else if (t.entry_kind === 'DEPENSE') {
-            depenses += t.amount;
-            if (t.currency === 'USD') usd -= t.amount;
-            else cdf -= t.amount;
+            if (t.currency === 'USD') {
+              depensesUsd += t.amount;
+              usd -= t.amount;
+            } else {
+              depensesCdf += t.amount;
+              cdf -= t.amount;
+            }
           }
         });
 
-        setBalances({ usd, cdf, recettes, depenses });
+        setBalances({ usd, cdf, recettesUsd, recettesCdf, depensesUsd, depensesCdf });
       }
     } catch (error) {
       console.error('Error fetching balances:', error);
@@ -75,7 +87,7 @@ const Comptabilite = () => {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Solde USD</CardTitle>
@@ -108,30 +120,60 @@ const Comptabilite = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Recettes</CardTitle>
+            <CardTitle className="text-sm font-medium">Recettes USD</CardTitle>
             <TrendingUp className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${balances.recettes.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+              ${balances.recettesUsd.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
-              Total des recettes
+              Total des recettes USD
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Dépenses</CardTitle>
+            <CardTitle className="text-sm font-medium">Recettes CDF</CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {balances.recettesCdf.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} FC
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Total des recettes CDF
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Dépenses USD</CardTitle>
             <TrendingDown className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${balances.depenses.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+              ${balances.depensesUsd.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
-              Total des dépenses
+              Total des dépenses USD
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Dépenses CDF</CardTitle>
+            <TrendingDown className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {balances.depensesCdf.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} FC
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Total des dépenses CDF
             </p>
           </CardContent>
         </Card>
