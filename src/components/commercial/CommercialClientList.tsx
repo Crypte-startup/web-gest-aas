@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Printer } from 'lucide-react';
+import { Plus, Printer, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import ClientForm from '@/components/clientele/ClientForm';
 
 interface Client {
   id: string;
@@ -20,6 +21,8 @@ interface Client {
 
 const CommercialClientList = () => {
   const [clients, setClients] = useState<Client[]>([]);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<Client | undefined>();
   const { toast } = useToast();
 
   const fetchClients = async () => {
@@ -43,6 +46,26 @@ const CommercialClientList = () => {
   useEffect(() => {
     fetchClients();
   }, []);
+
+  const handleEdit = (client: Client) => {
+    setSelectedClient(client);
+    setIsFormOpen(true);
+  };
+
+  const handleAdd = () => {
+    setSelectedClient(undefined);
+    setIsFormOpen(true);
+  };
+
+  const handleFormClose = () => {
+    setIsFormOpen(false);
+    setSelectedClient(undefined);
+  };
+
+  const handleFormSuccess = () => {
+    fetchClients();
+    handleFormClose();
+  };
 
   const handlePrintAll = () => {
     const printWindow = window.open('', '_blank');
@@ -183,10 +206,16 @@ const CommercialClientList = () => {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Clients</h2>
-        <Button onClick={handlePrintAll} disabled={clients.length === 0}>
-          <Printer className="h-4 w-4 mr-2" />
-          Imprimer la liste
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handlePrintAll} disabled={clients.length === 0} variant="outline">
+            <Printer className="h-4 w-4 mr-2" />
+            Imprimer la liste
+          </Button>
+          <Button onClick={handleAdd}>
+            <Plus className="h-4 w-4 mr-2" />
+            Ajouter un client
+          </Button>
+        </div>
       </div>
 
       <div className="border rounded-lg">
@@ -228,13 +257,24 @@ const CommercialClientList = () => {
                   <TableCell>{client.ecole || '-'}</TableCell>
                   <TableCell>{client.classe || '-'}</TableCell>
                   <TableCell className="text-center">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handlePrintOne(client)}
-                    >
-                      <Printer className="h-4 w-4" />
-                    </Button>
+                    <div className="flex justify-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handlePrintOne(client)}
+                        title="Imprimer"
+                      >
+                        <Printer className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(client)}
+                        title="Modifier"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -242,6 +282,13 @@ const CommercialClientList = () => {
           </TableBody>
         </Table>
       </div>
+
+      <ClientForm
+        open={isFormOpen}
+        onClose={handleFormClose}
+        client={selectedClient}
+        onSuccess={handleFormSuccess}
+      />
     </div>
   );
 };
