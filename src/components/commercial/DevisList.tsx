@@ -8,6 +8,7 @@ import DevisForm from './DevisForm';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
+import { numberToWords } from '@/lib/numberToWords';
 
 interface Devis {
   id: string;
@@ -16,6 +17,14 @@ interface Devis {
   montant: number;
   motif?: string;
   created_at: string;
+}
+
+interface DevisItem {
+  id: string;
+  designation: string;
+  quantite: number;
+  prix_unitaire: number;
+  prix_total: number;
 }
 
 const DevisList = () => {
@@ -89,9 +98,34 @@ const DevisList = () => {
     fetchDevis();
   };
 
-  const handlePrint = (devis: Devis) => {
+  const handlePrint = async (devis: Devis) => {
+    // Fetch devis items
+    const { data: items, error } = await supabase
+      .from('devis_items')
+      .select('*')
+      .eq('devis_id', devis.id);
+
+    if (error) {
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de charger les articles',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const montantEnLettres = numberToWords(devis.montant, devis.devise);
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
+
+    const itemsHtml = items?.map(item => `
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">${item.designation}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${item.quantite}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${Number(item.prix_unitaire).toLocaleString()}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${Number(item.prix_total).toLocaleString()}</td>
+      </tr>
+    `).join('');
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -100,9 +134,14 @@ const DevisList = () => {
           <title>Devis - ${devis.client_name}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 20px; }
-            h1 { color: #333; }
+            h1 { color: #333; text-align: center; }
             .info { margin: 20px 0; }
             .label { font-weight: bold; }
+            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            th { background-color: #f2f2f2; border: 1px solid #ddd; padding: 8px; text-align: left; }
+            td { border: 1px solid #ddd; padding: 8px; }
+            .total-row { font-weight: bold; background-color: #f9f9f9; }
+            .amount-words { margin: 20px 0; font-style: italic; }
             @media print {
               button { display: none; }
             }
@@ -112,11 +151,32 @@ const DevisList = () => {
           <h1>DEVIS</h1>
           <div class="info">
             <p><span class="label">Client:</span> ${devis.client_name}</p>
-            <p><span class="label">Devise:</span> ${devis.devise}</p>
-            <p><span class="label">Montant:</span> ${devis.montant.toLocaleString()}</p>
             ${devis.motif ? `<p><span class="label">Motif:</span> ${devis.motif}</p>` : ''}
             <p><span class="label">Date:</span> ${new Date(devis.created_at).toLocaleDateString()}</p>
           </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>Désignation</th>
+                <th style="text-align: right;">Quantité</th>
+                <th style="text-align: right;">Prix unitaire (${devis.devise})</th>
+                <th style="text-align: right;">Prix total (${devis.devise})</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+              <tr class="total-row">
+                <td colspan="3" style="text-align: right;">TOTAL:</td>
+                <td style="text-align: right;">${devis.montant.toLocaleString()} ${devis.devise}</td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <div class="amount-words">
+            <p><span class="label">Montant en lettres:</span> ${montantEnLettres}</p>
+          </div>
+          
           <button onclick="window.print()">Imprimer</button>
         </body>
       </html>

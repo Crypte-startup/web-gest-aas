@@ -163,6 +163,47 @@ export type Database = {
           },
         ]
       }
+      devis_items: {
+        Row: {
+          created_at: string
+          designation: string
+          devis_id: string
+          id: string
+          prix_total: number
+          prix_unitaire: number
+          quantite: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          designation: string
+          devis_id: string
+          id?: string
+          prix_total: number
+          prix_unitaire: number
+          quantite?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          designation?: string
+          devis_id?: string
+          id?: string
+          prix_total?: number
+          prix_unitaire?: number
+          quantite?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devis_items_devis_id_fkey"
+            columns: ["devis_id"]
+            isOneToOne: false
+            referencedRelation: "devis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           adresse: string | null
@@ -263,6 +304,47 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facture_items: {
+        Row: {
+          created_at: string
+          designation: string
+          facture_id: string
+          id: string
+          prix_total: number
+          prix_unitaire: number
+          quantite: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          designation: string
+          facture_id: string
+          id?: string
+          prix_total: number
+          prix_unitaire: number
+          quantite?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          designation?: string
+          facture_id?: string
+          id?: string
+          prix_total?: number
+          prix_unitaire?: number
+          quantite?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facture_items_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "facture"
             referencedColumns: ["id"]
           },
         ]

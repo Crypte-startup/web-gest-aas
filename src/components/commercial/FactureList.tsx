@@ -8,6 +8,7 @@ import FactureForm from './FactureForm';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
+import { numberToWords } from '@/lib/numberToWords';
 
 interface Facture {
   id: string;
@@ -89,9 +90,34 @@ const FactureList = () => {
     fetchFactures();
   };
 
-  const handlePrint = (facture: Facture) => {
+  const handlePrint = async (facture: Facture) => {
+    // Fetch facture items
+    const { data: items, error } = await supabase
+      .from('facture_items')
+      .select('*')
+      .eq('facture_id', facture.id);
+
+    if (error) {
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de charger les articles',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const montantEnLettres = numberToWords(facture.montant, facture.devise);
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
+
+    const itemsHtml = items?.map(item => `
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">${item.designation}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${item.quantite}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${Number(item.prix_unitaire).toLocaleString()}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${Number(item.prix_total).toLocaleString()}</td>
+      </tr>
+    `).join('');
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -100,9 +126,14 @@ const FactureList = () => {
           <title>Facture - ${facture.client_name}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 20px; }
-            h1 { color: #333; }
+            h1 { color: #333; text-align: center; }
             .info { margin: 20px 0; }
             .label { font-weight: bold; }
+            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            th { background-color: #f2f2f2; border: 1px solid #ddd; padding: 8px; text-align: left; }
+            td { border: 1px solid #ddd; padding: 8px; }
+            .total-row { font-weight: bold; background-color: #f9f9f9; }
+            .amount-words { margin: 20px 0; font-style: italic; }
             @media print {
               button { display: none; }
             }
@@ -112,11 +143,32 @@ const FactureList = () => {
           <h1>FACTURE</h1>
           <div class="info">
             <p><span class="label">Client:</span> ${facture.client_name}</p>
-            <p><span class="label">Devise:</span> ${facture.devise}</p>
-            <p><span class="label">Montant:</span> ${facture.montant.toLocaleString()}</p>
             ${facture.motif ? `<p><span class="label">Motif:</span> ${facture.motif}</p>` : ''}
             <p><span class="label">Date:</span> ${new Date(facture.created_at).toLocaleDateString()}</p>
           </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>Désignation</th>
+                <th style="text-align: right;">Quantité</th>
+                <th style="text-align: right;">Prix unitaire (${facture.devise})</th>
+                <th style="text-align: right;">Prix total (${facture.devise})</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+              <tr class="total-row">
+                <td colspan="3" style="text-align: right;">TOTAL:</td>
+                <td style="text-align: right;">${facture.montant.toLocaleString()} ${facture.devise}</td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <div class="amount-words">
+            <p><span class="label">Montant en lettres:</span> ${montantEnLettres}</p>
+          </div>
+          
           <button onclick="window.print()">Imprimer</button>
         </body>
       </html>
