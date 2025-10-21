@@ -158,7 +158,7 @@ export type Database = {
             foreignKeyName: "devis_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
-            referencedRelation: "commercial_clients"
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
@@ -262,7 +262,7 @@ export type Database = {
             foreignKeyName: "facture_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
-            referencedRelation: "commercial_clients"
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]

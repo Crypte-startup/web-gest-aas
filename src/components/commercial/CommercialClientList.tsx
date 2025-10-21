@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Printer } from 'lucide-react';
+import { Printer } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Client {
@@ -44,7 +44,7 @@ const CommercialClientList = () => {
     fetchClients();
   }, []);
 
-  const handlePrint = () => {
+  const handlePrintAll = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
@@ -111,11 +111,79 @@ const CommercialClientList = () => {
     printWindow.document.close();
   };
 
+  const handlePrintOne = (client: Client) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Fiche Client - ${client.name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+            h1 { color: #333; text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; }
+            .info-section { margin: 20px 0; }
+            .info-row { display: flex; padding: 10px 0; border-bottom: 1px solid #eee; }
+            .info-label { font-weight: bold; width: 200px; color: #555; }
+            .info-value { flex: 1; }
+            .print-date { text-align: right; margin-bottom: 20px; color: #666; font-size: 14px; }
+            @media print {
+              button { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="print-date">Date d'impression: ${new Date().toLocaleDateString('fr-FR')}</div>
+          <h1>FICHE CLIENT</h1>
+          <div class="info-section">
+            <div class="info-row">
+              <span class="info-label">Nom:</span>
+              <span class="info-value">${client.name}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Postnom:</span>
+              <span class="info-value">${client.postnom || '-'}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Prénom:</span>
+              <span class="info-value">${client.prenom || '-'}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Date de naissance:</span>
+              <span class="info-value">${client.date_naissance ? new Date(client.date_naissance).toLocaleDateString('fr-FR') : '-'}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Téléphone:</span>
+              <span class="info-value">${client.phone || '-'}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Email:</span>
+              <span class="info-value">${client.email || '-'}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">École:</span>
+              <span class="info-value">${client.ecole || '-'}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Classe:</span>
+              <span class="info-value">${client.classe || '-'}</span>
+            </div>
+          </div>
+          <div style="margin-top: 30px; text-align: center;">
+            <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">Imprimer</button>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Clients</h2>
-        <Button onClick={handlePrint} disabled={clients.length === 0}>
+        <Button onClick={handlePrintAll} disabled={clients.length === 0}>
           <Printer className="h-4 w-4 mr-2" />
           Imprimer la liste
         </Button>
@@ -133,12 +201,13 @@ const CommercialClientList = () => {
               <TableHead>Email</TableHead>
               <TableHead>École</TableHead>
               <TableHead>Classe</TableHead>
+              <TableHead className="text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {clients.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">
+                <TableCell colSpan={9} className="text-center text-muted-foreground">
                   Aucun client enregistré
                 </TableCell>
               </TableRow>
@@ -158,6 +227,15 @@ const CommercialClientList = () => {
                   <TableCell>{client.email || '-'}</TableCell>
                   <TableCell>{client.ecole || '-'}</TableCell>
                   <TableCell>{client.classe || '-'}</TableCell>
+                  <TableCell className="text-center">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handlePrintOne(client)}
+                    >
+                      <Printer className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))
             )}

@@ -12,7 +12,7 @@ interface ClientListProps {
   onAdd: () => void;
 }
 
-const handlePrint = (clients: any[]) => {
+const handlePrintAll = (clients: any[]) => {
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
 
@@ -79,6 +79,86 @@ const handlePrint = (clients: any[]) => {
   printWindow.document.close();
 };
 
+const handlePrintOne = (client: any) => {
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return;
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Fiche Client - ${client.name}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+          h1 { color: #333; text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; }
+          .info-section { margin: 20px 0; }
+          .info-row { display: flex; padding: 10px 0; border-bottom: 1px solid #eee; }
+          .info-label { font-weight: bold; width: 200px; color: #555; }
+          .info-value { flex: 1; }
+          .print-date { text-align: right; margin-bottom: 20px; color: #666; font-size: 14px; }
+          @media print {
+            button { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="print-date">Date d'impression: ${new Date().toLocaleDateString('fr-FR')}</div>
+        <h1>FICHE CLIENT</h1>
+        <div class="info-section">
+          <div class="info-row">
+            <span class="info-label">Nom:</span>
+            <span class="info-value">${client.name}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Postnom:</span>
+            <span class="info-value">${client.postnom || '-'}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Prénom:</span>
+            <span class="info-value">${client.prenom || '-'}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Date de naissance:</span>
+            <span class="info-value">${client.date_naissance ? format(new Date(client.date_naissance), 'dd/MM/yyyy', { locale: fr }) : '-'}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Téléphone:</span>
+            <span class="info-value">${client.phone || '-'}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Email:</span>
+            <span class="info-value">${client.email || '-'}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">École:</span>
+            <span class="info-value">${client.ecole || '-'}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Classe:</span>
+            <span class="info-value">${client.classe || '-'}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Domicile:</span>
+            <span class="info-value">${client.domicile || '-'}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Adresse école:</span>
+            <span class="info-value">${client.adresse_ecole || '-'}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Trajet:</span>
+            <span class="info-value">${client.trajet || '-'}</span>
+          </div>
+        </div>
+        <div style="margin-top: 30px; text-align: center;">
+          <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">Imprimer</button>
+        </div>
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+};
+
 const ClientList = ({ clients, isLoading, onEdit, onDelete, onAdd }: ClientListProps) => {
   if (isLoading) {
     return (
@@ -103,7 +183,7 @@ const ClientList = ({ clients, isLoading, onEdit, onDelete, onAdd }: ClientListP
   return (
     <div className="space-y-4">
       <div className="flex justify-between">
-        <Button onClick={() => handlePrint(clients)} disabled={clients.length === 0}>
+        <Button onClick={() => handlePrintAll(clients)} disabled={clients.length === 0}>
           <Printer className="w-4 h-4 mr-2" />
           Imprimer la liste
         </Button>
@@ -160,6 +240,14 @@ const ClientList = ({ clients, isLoading, onEdit, onDelete, onAdd }: ClientListP
                 <TableCell>{client.phone || '-'}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
+                  <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handlePrintOne(client)}
+                      title="Imprimer ce client"
+                    >
+                      <Printer className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
