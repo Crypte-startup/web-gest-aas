@@ -128,6 +128,7 @@ export type Database = {
           devise: string
           id: string
           montant: number
+          motif: string | null
           updated_at: string
         }
         Insert: {
@@ -138,6 +139,7 @@ export type Database = {
           devise: string
           id?: string
           montant: number
+          motif?: string | null
           updated_at?: string
         }
         Update: {
@@ -148,6 +150,7 @@ export type Database = {
           devise?: string
           id?: string
           montant?: number
+          motif?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -229,6 +232,7 @@ export type Database = {
           devise: string
           id: string
           montant: number
+          motif: string | null
           updated_at: string
         }
         Insert: {
@@ -239,6 +243,7 @@ export type Database = {
           devise: string
           id?: string
           montant: number
+          motif?: string | null
           updated_at?: string
         }
         Update: {
@@ -249,6 +254,7 @@ export type Database = {
           devise?: string
           id?: string
           montant?: number
+          motif?: string | null
           updated_at?: string
         }
         Relationships: [

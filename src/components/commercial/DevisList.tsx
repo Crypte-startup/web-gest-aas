@@ -14,6 +14,7 @@ interface Devis {
   client_name: string;
   devise: string;
   montant: number;
+  motif?: string;
   created_at: string;
 }
 
@@ -113,6 +114,7 @@ const DevisList = () => {
             <p><span class="label">Client:</span> ${devis.client_name}</p>
             <p><span class="label">Devise:</span> ${devis.devise}</p>
             <p><span class="label">Montant:</span> ${devis.montant.toLocaleString()}</p>
+            ${devis.motif ? `<p><span class="label">Motif:</span> ${devis.motif}</p>` : ''}
             <p><span class="label">Date:</span> ${new Date(devis.created_at).toLocaleDateString()}</p>
           </div>
           <button onclick="window.print()">Imprimer</button>
@@ -139,6 +141,7 @@ const DevisList = () => {
               <TableHead>Client</TableHead>
               <TableHead>Devise</TableHead>
               <TableHead>Montant</TableHead>
+              <TableHead>Motif</TableHead>
               <TableHead>Date</TableHead>
               <TableHead className="text-center">Actions</TableHead>
             </TableRow>
@@ -146,7 +149,7 @@ const DevisList = () => {
           <TableBody>
             {devisList.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   Aucun devis enregistré
                 </TableCell>
               </TableRow>
@@ -156,6 +159,7 @@ const DevisList = () => {
                   <TableCell>{devis.client_name}</TableCell>
                   <TableCell>{devis.devise}</TableCell>
                   <TableCell>{devis.montant.toLocaleString()}</TableCell>
+                  <TableCell>{devis.motif || '-'}</TableCell>
                   <TableCell>{new Date(devis.created_at).toLocaleDateString()}</TableCell>
                   <TableCell className="text-center">
                     <div className="flex justify-center gap-2">

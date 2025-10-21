@@ -25,6 +25,7 @@ interface FactureFormData {
   client_name: string;
   devise: string;
   montant: number;
+  motif: string;
 }
 
 const FactureForm = ({ open, onClose, facture, onSuccess }: FactureFormProps) => {
@@ -47,6 +48,7 @@ const FactureForm = ({ open, onClose, facture, onSuccess }: FactureFormProps) =>
       setValue('client_name', facture.client_name || '');
       setValue('devise', facture.devise || '');
       setValue('montant', facture.montant || 0);
+      setValue('motif', facture.motif || '');
     } else {
       reset();
     }
@@ -56,17 +58,16 @@ const FactureForm = ({ open, onClose, facture, onSuccess }: FactureFormProps) =>
     if (selectedClientId) {
       const client = clients.find(c => c.id === selectedClientId);
       if (client) {
-        const fullName = `${client.nom} ${client.postnom || ''} ${client.prenom || ''}`.trim();
-        setValue('client_name', fullName);
+        setValue('client_name', client.name);
       }
     }
   }, [selectedClientId, clients, setValue]);
 
   const fetchClients = async () => {
     const { data, error } = await supabase
-      .from('commercial_clients')
+      .from('clients')
       .select('*')
-      .order('nom');
+      .order('name');
 
     if (error) {
       toast({
@@ -146,9 +147,7 @@ const FactureForm = ({ open, onClose, facture, onSuccess }: FactureFormProps) =>
                   className="w-full justify-between"
                 >
                   {selectedClientId
-                    ? clients.find((client) => client.id === selectedClientId)
-                        ? `${clients.find((client) => client.id === selectedClientId).nom} ${clients.find((client) => client.id === selectedClientId).postnom || ''} ${clients.find((client) => client.id === selectedClientId).prenom || ''}`.trim()
-                        : "Sélectionner un client..."
+                    ? clients.find((client) => client.id === selectedClientId)?.name || "Sélectionner un client..."
                     : "Sélectionner un client..."}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
@@ -162,7 +161,7 @@ const FactureForm = ({ open, onClose, facture, onSuccess }: FactureFormProps) =>
                       {clients.map((client) => (
                         <CommandItem
                           key={client.id}
-                          value={`${client.nom} ${client.postnom || ''} ${client.prenom || ''}`}
+                          value={client.name}
                           onSelect={() => {
                             setValue('client_id', client.id);
                             setOpenCombobox(false);
@@ -174,7 +173,7 @@ const FactureForm = ({ open, onClose, facture, onSuccess }: FactureFormProps) =>
                               selectedClientId === client.id ? "opacity-100" : "opacity-0"
                             )}
                           />
-                          {client.nom} {client.postnom} {client.prenom}
+                          {client.name}
                         </CommandItem>
                       ))}
                     </CommandGroup>
@@ -214,6 +213,15 @@ const FactureForm = ({ open, onClose, facture, onSuccess }: FactureFormProps) =>
             {errors.montant && (
               <p className="text-sm text-destructive">{errors.montant.message}</p>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="motif">Motif</Label>
+            <Input
+              id="motif"
+              {...register('motif')}
+              placeholder="Motif de la facture"
+            />
           </div>
 
           <div className="flex justify-end gap-2 pt-4">

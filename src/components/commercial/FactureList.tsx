@@ -14,6 +14,7 @@ interface Facture {
   client_name: string;
   devise: string;
   montant: number;
+  motif?: string;
   created_at: string;
 }
 
@@ -113,6 +114,7 @@ const FactureList = () => {
             <p><span class="label">Client:</span> ${facture.client_name}</p>
             <p><span class="label">Devise:</span> ${facture.devise}</p>
             <p><span class="label">Montant:</span> ${facture.montant.toLocaleString()}</p>
+            ${facture.motif ? `<p><span class="label">Motif:</span> ${facture.motif}</p>` : ''}
             <p><span class="label">Date:</span> ${new Date(facture.created_at).toLocaleDateString()}</p>
           </div>
           <button onclick="window.print()">Imprimer</button>
@@ -139,6 +141,7 @@ const FactureList = () => {
               <TableHead>Client</TableHead>
               <TableHead>Devise</TableHead>
               <TableHead>Montant</TableHead>
+              <TableHead>Motif</TableHead>
               <TableHead>Date</TableHead>
               <TableHead className="text-center">Actions</TableHead>
             </TableRow>
@@ -146,7 +149,7 @@ const FactureList = () => {
           <TableBody>
             {factureList.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   Aucune facture enregistrée
                 </TableCell>
               </TableRow>
@@ -156,6 +159,7 @@ const FactureList = () => {
                   <TableCell>{facture.client_name}</TableCell>
                   <TableCell>{facture.devise}</TableCell>
                   <TableCell>{facture.montant.toLocaleString()}</TableCell>
+                  <TableCell>{facture.motif || '-'}</TableCell>
                   <TableCell>{new Date(facture.created_at).toLocaleDateString()}</TableCell>
                   <TableCell className="text-center">
                     <div className="flex justify-center gap-2">
