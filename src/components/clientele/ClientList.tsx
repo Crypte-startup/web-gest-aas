@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { UserPlus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { UserPlus, Pencil, Trash2, Loader2, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -11,6 +11,73 @@ interface ClientListProps {
   onDelete: (clientId: string) => void;
   onAdd: () => void;
 }
+
+const handlePrint = (clients: any[]) => {
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return;
+
+  const clientRows = clients
+    .map(
+      (client) => `
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">${client.name}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${client.postnom || '-'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${client.prenom || '-'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${client.date_naissance ? format(new Date(client.date_naissance), 'dd/MM/yyyy', { locale: fr }) : '-'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${client.phone || '-'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${client.email || '-'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${client.ecole || '-'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${client.classe || '-'}</td>
+      </tr>
+    `
+    )
+    .join('');
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Liste des Clients - Clientèle</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          h1 { color: #333; text-align: center; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th { background-color: #f4f4f4; border: 1px solid #ddd; padding: 12px; text-align: left; }
+          td { border: 1px solid #ddd; padding: 8px; }
+          .print-date { text-align: right; margin-bottom: 10px; color: #666; }
+          @media print {
+            button { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>LISTE DES CLIENTS - CLIENTÈLE</h1>
+        <div class="print-date">Date: ${new Date().toLocaleDateString('fr-FR')}</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Postnom</th>
+              <th>Prénom</th>
+              <th>Date naissance</th>
+              <th>Téléphone</th>
+              <th>Email</th>
+              <th>École</th>
+              <th>Classe</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${clientRows}
+          </tbody>
+        </table>
+        <div style="margin-top: 20px; text-align: center;">
+          <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">Imprimer</button>
+        </div>
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+};
 
 const ClientList = ({ clients, isLoading, onEdit, onDelete, onAdd }: ClientListProps) => {
   if (isLoading) {
@@ -35,7 +102,11 @@ const ClientList = ({ clients, isLoading, onEdit, onDelete, onAdd }: ClientListP
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-between">
+        <Button onClick={() => handlePrint(clients)} disabled={clients.length === 0}>
+          <Printer className="w-4 h-4 mr-2" />
+          Imprimer la liste
+        </Button>
         <Button onClick={onAdd}>
           <UserPlus className="w-4 h-4 mr-2" />
           Ajouter un client
