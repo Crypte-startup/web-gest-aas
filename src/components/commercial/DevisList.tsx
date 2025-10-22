@@ -134,7 +134,11 @@ const DevisList = () => {
           <title>Devis - ${devis.client_name}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 20px; }
-            h1 { color: #333; text-align: center; }
+            .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+            .logo { width: 120px; height: auto; }
+            .company-info { text-align: right; font-size: 12px; line-height: 1.6; }
+            .company-info strong { display: block; margin-bottom: 5px; }
+            h1 { color: #333; text-align: center; margin: 20px 0; }
             .info { margin: 20px 0; }
             .label { font-weight: bold; }
             table { width: 100%; border-collapse: collapse; margin: 20px 0; }
@@ -148,6 +152,14 @@ const DevisList = () => {
           </style>
         </head>
         <body>
+          <div class="header">
+            <img src="/logo.png" alt="Logo" class="logo" />
+            <div class="company-info">
+              <strong>RCCM : CD/LSI/RCCM/24-B-745</strong>
+              <strong>ID.NAT : 05-H4901-N70222J</strong>
+              <strong>NIF : A2434893E</strong>
+            </div>
+          </div>
           <h1>DEVIS</h1>
           <div class="info">
             <p><span class="label">Client:</span> ${devis.client_name}</p>
