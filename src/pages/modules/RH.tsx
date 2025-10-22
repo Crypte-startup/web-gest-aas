@@ -23,6 +23,10 @@ interface Employee {
   position: string;
   salary: number;
   currency: string;
+  hire_date: string;
+  leave_start_date: string | null;
+  leave_end_date: string | null;
+  leave_days: number;
 }
 
 const RH = () => {
@@ -40,6 +44,8 @@ const RH = () => {
     email: '',
     position: '',
     salary: '',
+    hire_date: '',
+    leave_days: '0',
   });
 
   useEffect(() => {
@@ -82,6 +88,8 @@ const RH = () => {
           position: newEmployee.position,
           salary: parseFloat(newEmployee.salary),
           currency: 'USD',
+          hire_date: newEmployee.hire_date,
+          leave_days: parseInt(newEmployee.leave_days) || 0,
           created_by: user?.id,
         }]);
 
@@ -103,6 +111,8 @@ const RH = () => {
         email: '',
         position: '',
         salary: '',
+        hire_date: '',
+        leave_days: '0',
       });
       fetchEmployees();
     } catch (error) {
@@ -248,6 +258,26 @@ const RH = () => {
                   />
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="hire_date">Date d'engagement</Label>
+                  <Input
+                    id="hire_date"
+                    type="date"
+                    value={newEmployee.hire_date}
+                    onChange={(e) => setNewEmployee({ ...newEmployee, hire_date: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="leave_days">Jours de congé</Label>
+                  <Input
+                    id="leave_days"
+                    type="number"
+                    value={newEmployee.leave_days}
+                    onChange={(e) => setNewEmployee({ ...newEmployee, leave_days: e.target.value })}
+                  />
+                </div>
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -344,6 +374,8 @@ const RH = () => {
                   <TableHead>E-mail</TableHead>
                   <TableHead>Fonction</TableHead>
                   <TableHead>Salaire</TableHead>
+                  <TableHead>Date engagement</TableHead>
+                  <TableHead>Jours congé</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -362,6 +394,10 @@ const RH = () => {
                     <TableCell>
                       ${employee.salary?.toLocaleString() || '0'} {employee.currency}
                     </TableCell>
+                    <TableCell>
+                      {employee.hire_date ? new Date(employee.hire_date).toLocaleDateString('fr-FR') : '-'}
+                    </TableCell>
+                    <TableCell>{employee.leave_days || 0} jours</TableCell>
                     <TableCell className="text-right">
                       <AlertDialog>
                         <AlertDialogTrigger asChild>

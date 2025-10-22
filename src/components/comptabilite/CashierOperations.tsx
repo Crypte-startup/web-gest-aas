@@ -5,7 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Printer, Trash2 } from 'lucide-react';
+import { Loader2, Printer, Trash2, FileText } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
 import {
@@ -44,6 +46,7 @@ const CashierOperations = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
+  const [periodFilter, setPeriodFilter] = useState<string>('all');
   const { toast } = useToast();
   const { user } = useAuth();
   const { isAdmin } = useUserRole(user?.id);
@@ -141,6 +144,35 @@ const CashierOperations = () => {
     }
   };
 
+  const filterTransactionsByPeriod = (transactions: Transaction[]) => {
+    if (periodFilter === 'all') return transactions;
+    
+    const now = new Date();
+    let start: Date, end: Date;
+    
+    switch (periodFilter) {
+      case 'daily':
+        start = startOfDay(now);
+        end = endOfDay(now);
+        break;
+      case 'weekly':
+        start = startOfWeek(now, { weekStartsOn: 1 });
+        end = endOfWeek(now, { weekStartsOn: 1 });
+        break;
+      case 'monthly':
+        start = startOfMonth(now);
+        end = endOfMonth(now);
+        break;
+      default:
+        return transactions;
+    }
+    
+    return transactions.filter(t => {
+      const transDate = new Date(t.created_at);
+      return transDate >= start && transDate <= end;
+    });
+  };
+
   const getRoleLabel = (role: string) => {
     const labels: Record<string, string> = {
       caissier: 'Caissier',
@@ -151,6 +183,69 @@ const CashierOperations = () => {
       caissier5: 'Caissier 5',
     };
     return labels[role] || role;
+  };
+
+  const handlePrintTransaction = (transaction: Transaction, cashierRole: string, cashierEmail: string) => {
+    const printContent = `
+      <html>
+        <head>
+          <title>Transaction ${transaction.entry_id}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+            .logo { max-width: 150px; margin-bottom: 10px; }
+            .company-info { font-size: 12px; line-height: 1.6; }
+            h1 { color: #2c5f2d; margin: 20px 0; }
+            .transaction { border: 2px solid #2c5f2d; padding: 20px; border-radius: 8px; margin: 20px 0; }
+            .field { margin: 10px 0; }
+            .label { font-weight: bold; }
+            .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #333; text-align: center; font-size: 11px; line-height: 1.5; }
+            @media print { button { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <img src="/logo.png" alt="Logo" class="logo" />
+            <div class="company-info">
+              <strong>RCCM :</strong> CD/LSI/RCCM/24-B-745<br/>
+              <strong>ID.NAT :</strong> 05-H4901-N70222J<br/>
+              <strong>NIF :</strong> A2434893E<br/>
+              <strong>TELEPHONE :</strong> +243 82 569 21 21<br/>
+              <strong>MAIL :</strong> info@amarachamsarl.com
+            </div>
+          </div>
+          
+          <div class="transaction">
+            <h1>Opération Caissier</h1>
+            <div class="field"><span class="label">ID:</span> ${transaction.entry_id}</div>
+            <div class="field"><span class="label">Caissier:</span> ${getRoleLabel(cashierRole)} - ${cashierEmail}</div>
+            <div class="field"><span class="label">Type:</span> ${transaction.entry_kind}</div>
+            <div class="field"><span class="label">Client:</span> ${transaction.client_name || '-'}</div>
+            <div class="field"><span class="label">Motif:</span> ${transaction.motif || '-'}</div>
+            <div class="field"><span class="label">Devise:</span> ${transaction.currency}</div>
+            <div class="field"><span class="label">Montant:</span> ${transaction.amount.toLocaleString()} ${transaction.currency}</div>
+            <div class="field"><span class="label">Statut:</span> ${transaction.status}</div>
+            <div class="field"><span class="label">Date:</span> ${new Date(transaction.created_at).toLocaleDateString('fr-FR')}</div>
+          </div>
+          
+          <div class="footer">
+            <strong>ADRESSE :</strong> 1144 avenue maître mawanga<br/>
+            Quartier Ile du golf, Commune de Likasi, Haut Katanga,<br/>
+            République Démocratique du Congo
+          </div>
+          
+          <button onclick="window.print()">Imprimer</button>
+        </body>
+      </html>
+    `;
+    
+    const printWindow = window.open('', '', 'height=600,width=800');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+    }
   };
 
   const handlePrintCashier = (cashierData: CashierData) => {
@@ -264,7 +359,28 @@ const CashierOperations = () => {
 
   return (
     <div className="space-y-6">
-      {cashiersData.map((cashierData) => (
+      <div className="flex justify-end mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Période:</span>
+          <Select value={periodFilter} onValueChange={setPeriodFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes</SelectItem>
+              <SelectItem value="daily">Aujourd'hui</SelectItem>
+              <SelectItem value="weekly">Cette semaine</SelectItem>
+              <SelectItem value="monthly">Ce mois</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
+      {cashiersData.map((cashierData) => {
+        const filteredTransactions = filterTransactionsByPeriod(cashierData.transactions);
+        if (filteredTransactions.length === 0 && periodFilter !== 'all') return null;
+        
+        return (
         <Card key={cashierData.userId}>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
@@ -290,11 +406,18 @@ const CashierOperations = () => {
                     <TableHead>Motif</TableHead>
                     <TableHead>Devise</TableHead>
                     <TableHead className="text-right">Montant</TableHead>
-                    {isAdmin && <TableHead className="text-center">Actions</TableHead>}
+                    <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {cashierData.transactions.map((transaction) => (
+                  {filteredTransactions.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        Aucune transaction pour cette période
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                  filteredTransactions.map((transaction) => (
                     <TableRow key={transaction.id}>
                       <TableCell className="font-mono text-sm">{transaction.entry_id}</TableCell>
                       <TableCell>{new Date(transaction.created_at).toLocaleDateString('fr-FR')}</TableCell>
@@ -308,25 +431,37 @@ const CashierOperations = () => {
                           maximumFractionDigits: 2 
                         })}
                       </TableCell>
-                      {isAdmin && (
-                        <TableCell className="text-center">
+                      <TableCell className="text-center">
+                        <div className="flex gap-1 justify-center">
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => confirmDelete(transaction.id)}
+                            onClick={() => handlePrintTransaction(transaction, cashierData.role, cashierData.email)}
+                            title="Imprimer cette transaction"
                           >
-                            <Trash2 className="h-4 w-4 text-destructive" />
+                            <FileText className="h-4 w-4" />
                           </Button>
-                        </TableCell>
-                      )}
+                          {isAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => confirmDelete(transaction.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  ))}
+                  ))
+                  )}
                 </TableBody>
               </Table>
             </div>
           </CardContent>
         </Card>
-      ))}
+        );
+      })}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

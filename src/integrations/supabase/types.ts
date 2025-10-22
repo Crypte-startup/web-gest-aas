@@ -216,6 +216,9 @@ export type Database = {
           full_name: string | null
           hire_date: string | null
           id: string
+          leave_days: number | null
+          leave_end_date: string | null
+          leave_start_date: string | null
           nom: string | null
           phone: string | null
           position: string | null
@@ -235,6 +238,9 @@ export type Database = {
           full_name?: string | null
           hire_date?: string | null
           id?: string
+          leave_days?: number | null
+          leave_end_date?: string | null
+          leave_start_date?: string | null
           nom?: string | null
           phone?: string | null
           position?: string | null
@@ -254,6 +260,9 @@ export type Database = {
           full_name?: string | null
           hire_date?: string | null
           id?: string
+          leave_days?: number | null
+          leave_end_date?: string | null
+          leave_start_date?: string | null
           nom?: string | null
           phone?: string | null
           position?: string | null
@@ -481,10 +490,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_admin_or_manager: {
-        Args: { _user_id: string }
-        Returns: boolean
-      }
+      is_admin_or_manager: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role:
