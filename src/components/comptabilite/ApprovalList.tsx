@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Check, X, Loader2 } from 'lucide-react';
+import { Check, X, Loader2, FileText } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
 interface Receipt {
@@ -117,6 +117,68 @@ const ApprovalList = () => {
     }
   };
 
+  const handlePrintTransaction = (receipt: Receipt) => {
+    const printContent = `
+      <html>
+        <head>
+          <title>Opération ${receipt.entry_id}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+            .logo { max-width: 150px; margin-bottom: 10px; }
+            .company-info { font-size: 12px; line-height: 1.6; }
+            h1 { color: #2c5f2d; margin: 20px 0; }
+            .transaction { border: 2px solid #2c5f2d; padding: 20px; border-radius: 8px; margin: 20px 0; }
+            .field { margin: 10px 0; }
+            .label { font-weight: bold; }
+            .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #333; text-align: center; font-size: 11px; line-height: 1.5; }
+            @media print { button { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <img src="/logo.png" alt="Logo" class="logo" />
+            <div class="company-info">
+              <strong>RCCM :</strong> CD/LSI/RCCM/24-B-745<br/>
+              <strong>ID.NAT :</strong> 05-H4901-N70222J<br/>
+              <strong>NIF :</strong> A2434893E<br/>
+              <strong>TELEPHONE :</strong> +243 82 569 21 21<br/>
+              <strong>MAIL :</strong> info@amarachamsarl.com
+            </div>
+          </div>
+          
+          <div class="transaction">
+            <h1>Opération Enregistrée</h1>
+            <div class="field"><span class="label">ID:</span> ${receipt.entry_id}</div>
+            <div class="field"><span class="label">Type:</span> ${receipt.entry_kind}</div>
+            <div class="field"><span class="label">Client:</span> ${receipt.client_name || '-'}</div>
+            <div class="field"><span class="label">Motif:</span> ${receipt.motif || '-'}</div>
+            <div class="field"><span class="label">Devise:</span> ${receipt.currency}</div>
+            <div class="field"><span class="label">Montant:</span> ${receipt.amount.toLocaleString()} ${receipt.currency}</div>
+            <div class="field"><span class="label">Statut:</span> ${receipt.status}</div>
+            <div class="field"><span class="label">Date:</span> ${new Date(receipt.created_at).toLocaleDateString('fr-FR')}</div>
+          </div>
+          
+          <div class="footer">
+            <strong>ADRESSE :</strong> 1144 avenue maître mawanga<br/>
+            Quartier Ile du golf, Commune de Likasi, Haut Katanga,<br/>
+            République Démocratique du Congo
+          </div>
+          
+          <button onclick="window.print()">Imprimer</button>
+        </body>
+      </html>
+    `;
+    
+    const printWindow = window.open('', '', 'height=600,width=800');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
       ENREGISTRE: 'secondary',
@@ -177,26 +239,36 @@ const ApprovalList = () => {
               </TableCell>
               <TableCell>{getStatusBadge(receipt.status)}</TableCell>
               <TableCell className="text-right">
-                {receipt.status === 'ENREGISTRE' && (
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-green-600 hover:text-green-700"
-                      onClick={() => handleApprove(receipt.id)}
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-red-600 hover:text-red-700"
-                      onClick={() => handleReject(receipt.id)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handlePrintTransaction(receipt)}
+                    title="Imprimer cette opération"
+                  >
+                    <FileText className="h-4 w-4" />
+                  </Button>
+                  {receipt.status === 'ENREGISTRE' && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-green-600 hover:text-green-700"
+                        onClick={() => handleApprove(receipt.id)}
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-red-600 hover:text-red-700"
+                        onClick={() => handleReject(receipt.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                </div>
               </TableCell>
             </TableRow>
           ))}
