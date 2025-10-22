@@ -158,6 +158,8 @@ const DevisList = () => {
               <strong>RCCM : CD/LSI/RCCM/24-B-745</strong>
               <strong>ID.NAT : 05-H4901-N70222J</strong>
               <strong>NIF : A2434893E</strong>
+              <strong>TEL : +243 82 569 21 21</strong>
+              <strong>MAIL : info@amarachamsarl.com</strong>
             </div>
           </div>
           <h1>DEVIS</h1>
