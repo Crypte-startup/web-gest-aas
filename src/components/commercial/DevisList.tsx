@@ -146,6 +146,7 @@ const DevisList = () => {
             td { border: 1px solid #ddd; padding: 8px; }
             .total-row { font-weight: bold; background-color: #f9f9f9; }
             .amount-words { margin: 20px 0; font-style: italic; }
+            .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #333; text-align: center; font-size: 11px; line-height: 1.5; }
             @media print {
               button { display: none; }
             }
@@ -189,6 +190,12 @@ const DevisList = () => {
           
           <div class="amount-words">
             <p><span class="label">Montant en lettres:</span> ${montantEnLettres}</p>
+          </div>
+          
+          <div class="footer">
+            <strong>ADRESSE :</strong> 1144 avenue maître mawanga<br/>
+            Quartier Ile du golf, Commune de Likasi, Haut Katanga,<br/>
+            République Démocratique du Congo
           </div>
           
           <button onclick="window.print()">Imprimer</button>
