@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Edit, Trash2, Printer } from 'lucide-react';
+import { Plus, Edit, Trash2, Printer, FileDown } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
 import DevisForm from './DevisForm';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -96,6 +98,107 @@ const DevisList = () => {
 
     setDeleteId(null);
     fetchDevis();
+  };
+
+  const handleExportPDF = async (devis: Devis) => {
+    const { data: items, error } = await supabase
+      .from('devis_items')
+      .select('*')
+      .eq('devis_id', devis.id);
+
+    if (error) {
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de charger les articles',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const montantEnLettres = numberToWords(devis.montant, devis.devise);
+    const itemsHtml = items?.map(item => `
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">${item.designation}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${item.quantite}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${Number(item.prix_unitaire).toLocaleString()}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${Number(item.prix_total).toLocaleString()}</td>
+      </tr>
+    `).join('');
+
+    const content = document.createElement('div');
+    content.style.width = '210mm';
+    content.style.padding = '20px';
+    content.style.fontFamily = 'Arial, sans-serif';
+    content.style.backgroundColor = 'white';
+    content.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px;">
+        <img src="/logo.png" alt="Logo" style="width: 120px; height: auto;" />
+        <div style="text-align: right; font-size: 12px; line-height: 1.6;">
+          <strong>RCCM : CD/LSI/RCCM/24-B-745</strong><br/>
+          <strong>ID.NAT : 05-H4901-N70222J</strong><br/>
+          <strong>NIF : A2434893E</strong><br/>
+          <strong>TEL : +243 82 569 21 21</strong><br/>
+          <strong>MAIL : info@amarachamsarl.com</strong>
+        </div>
+      </div>
+      <h1 style="color: #333; text-align: center; margin: 20px 0;">DEVIS</h1>
+      <div style="margin: 20px 0;">
+        <p><span style="font-weight: bold;">Client:</span> ${devis.client_name}</p>
+        ${devis.motif ? `<p><span style="font-weight: bold;">Motif:</span> ${devis.motif}</p>` : ''}
+        <p><span style="font-weight: bold;">Date:</span> ${new Date(devis.created_at).toLocaleDateString()}</p>
+      </div>
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <thead>
+          <tr>
+            <th style="background-color: #f2f2f2; border: 1px solid #ddd; padding: 8px; text-align: left;">Désignation</th>
+            <th style="background-color: #f2f2f2; border: 1px solid #ddd; padding: 8px; text-align: right;">Quantité</th>
+            <th style="background-color: #f2f2f2; border: 1px solid #ddd; padding: 8px; text-align: right;">Prix unitaire (${devis.devise})</th>
+            <th style="background-color: #f2f2f2; border: 1px solid #ddd; padding: 8px; text-align: right;">Prix total (${devis.devise})</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHtml}
+          <tr style="font-weight: bold; background-color: #f9f9f9;">
+            <td colspan="3" style="border: 1px solid #ddd; padding: 8px; text-align: right;">TOTAL:</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${devis.montant.toLocaleString()} ${devis.devise}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin: 20px 0; font-style: italic;">
+        <p><span style="font-weight: bold;">Montant en lettres:</span> ${montantEnLettres}</p>
+      </div>
+      <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #333; text-align: center; font-size: 11px; line-height: 1.5;">
+        <strong>ADRESSE :</strong> 1144 avenue maître mawanga<br/>
+        Quartier Ile du golf, Commune de Likasi, Haut Katanga,<br/>
+        République Démocratique du Congo
+      </div>
+    `;
+
+    document.body.appendChild(content);
+    
+    try {
+      const canvas = await html2canvas(content, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidth = 210;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.save(`devis-${devis.client_name}-${new Date(devis.created_at).toLocaleDateString()}.pdf`);
+      
+      toast({
+        title: 'Succès',
+        description: 'Le PDF a été téléchargé',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de générer le PDF',
+        variant: 'destructive',
+      });
+    } finally {
+      document.body.removeChild(content);
+    }
   };
 
   const handlePrint = async (devis: Devis) => {
@@ -248,8 +351,17 @@ const DevisList = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => handlePrint(devis)}
+                        title="Imprimer"
                       >
                         <Printer className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleExportPDF(devis)}
+                        title="Télécharger PDF"
+                      >
+                        <FileDown className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
