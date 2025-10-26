@@ -46,10 +46,10 @@ const TransactionForm = ({ onSuccess, onCancel }: TransactionFormProps) => {
     const today = new Date();
     const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
     
+    // Récupérer toutes les transactions du jour qui commencent par ACHAM-dateStr
     const { data: existingTransactions } = await supabase
       .from('ledger')
       .select('entry_id')
-      .eq('entry_kind', 'COMPTABILITE')
       .like('entry_id', `ACHAM-${dateStr}-%`)
       .order('created_at', { ascending: false })
       .limit(1);
