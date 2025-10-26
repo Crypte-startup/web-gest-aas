@@ -4,7 +4,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Check, X, Loader2, FileText } from 'lucide-react';
+import { Check, X, Loader2, FileText, CalendarIcon } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import type { Database } from '@/integrations/supabase/types';
 
 interface Receipt {
@@ -21,7 +26,10 @@ interface Receipt {
 
 const ApprovalList = () => {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [filteredReceipts, setFilteredReceipts] = useState<Receipt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
   const { toast } = useToast();
 
   const fetchReceipts = async () => {
@@ -34,6 +42,7 @@ const ApprovalList = () => {
 
       if (error) throw error;
       setReceipts(data || []);
+      setFilteredReceipts(data || []);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -68,6 +77,42 @@ const ApprovalList = () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  useEffect(() => {
+    filterByDate();
+  }, [receipts, startDate, endDate]);
+
+  const filterByDate = () => {
+    if (!startDate && !endDate) {
+      setFilteredReceipts(receipts);
+      return;
+    }
+
+    const filtered = receipts.filter(receipt => {
+      const receiptDate = new Date(receipt.created_at);
+      const receiptDateOnly = new Date(receiptDate.getFullYear(), receiptDate.getMonth(), receiptDate.getDate());
+      
+      if (startDate && endDate) {
+        const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+        const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+        return receiptDateOnly >= start && receiptDateOnly <= end;
+      } else if (startDate) {
+        const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+        return receiptDateOnly >= start;
+      } else if (endDate) {
+        const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+        return receiptDateOnly <= end;
+      }
+      return true;
+    });
+
+    setFilteredReceipts(filtered);
+  };
+
+  const resetFilters = () => {
+    setStartDate(undefined);
+    setEndDate(undefined);
+  };
 
   const handleApprove = async (id: string) => {
     try {
@@ -205,8 +250,75 @@ const ApprovalList = () => {
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
+    <div className="space-y-4">
+      <div className="flex gap-2 items-end flex-wrap">
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium">Date de début</label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-[200px] justify-start text-left font-normal",
+                  !startDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {startDate ? format(startDate, "PPP", { locale: fr }) : <span>Sélectionner</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={startDate}
+                onSelect={setStartDate}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium">Date de fin</label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-[200px] justify-start text-left font-normal",
+                  !endDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {endDate ? format(endDate, "PPP", { locale: fr }) : <span>Sélectionner</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={endDate}
+                onSelect={setEndDate}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {(startDate || endDate) && (
+          <Button variant="outline" onClick={resetFilters}>
+            Réinitialiser
+          </Button>
+        )}
+
+        <div className="ml-auto text-sm text-muted-foreground self-center">
+          {filteredReceipts.length} opération(s)
+        </div>
+      </div>
+
+      <div className="rounded-md border">
+        <Table>
         <TableHeader>
           <TableRow>
             <TableHead>ID</TableHead>
@@ -221,7 +333,7 @@ const ApprovalList = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {receipts.map((receipt) => (
+          {filteredReceipts.map((receipt) => (
             <TableRow key={receipt.id}>
               <TableCell className="font-mono text-sm">{receipt.entry_id}</TableCell>
               <TableCell>{new Date(receipt.created_at).toLocaleDateString('fr-FR')}</TableCell>
@@ -274,6 +386,7 @@ const ApprovalList = () => {
           ))}
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 };

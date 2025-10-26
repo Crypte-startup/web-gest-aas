@@ -5,8 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Printer, Trash2, FileText } from 'lucide-react';
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
+import { Loader2, Printer, Trash2, FileText, CalendarIcon } from 'lucide-react';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
 import {
@@ -37,6 +41,8 @@ const JournalList = () => {
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [periodFilter, setPeriodFilter] = useState<string>('all');
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
   const { toast } = useToast();
@@ -91,46 +97,72 @@ const JournalList = () => {
 
   useEffect(() => {
     filterTransactionsByPeriod();
-  }, [transactions, periodFilter]);
+  }, [transactions, periodFilter, startDate, endDate]);
 
   const filterTransactionsByPeriod = () => {
-    if (periodFilter === 'all') {
-      setFilteredTransactions(transactions);
-      return;
+    let filtered = transactions;
+
+    // Filtrer par période prédéfinie si sélectionnée
+    if (periodFilter !== 'all' && periodFilter !== 'custom') {
+      const now = new Date();
+      let periodStartDate: Date;
+      let periodEndDate: Date;
+
+      switch (periodFilter) {
+        case 'daily':
+          periodStartDate = startOfDay(now);
+          periodEndDate = endOfDay(now);
+          break;
+        case 'weekly':
+          periodStartDate = startOfWeek(now, { weekStartsOn: 1 });
+          periodEndDate = endOfWeek(now, { weekStartsOn: 1 });
+          break;
+        case 'monthly':
+          periodStartDate = startOfMonth(now);
+          periodEndDate = endOfMonth(now);
+          break;
+        case 'yearly':
+          periodStartDate = startOfYear(now);
+          periodEndDate = endOfYear(now);
+          break;
+        default:
+          periodStartDate = new Date(0);
+          periodEndDate = new Date();
+      }
+
+      filtered = filtered.filter(t => {
+        const transactionDate = new Date(t.created_at);
+        return transactionDate >= periodStartDate && transactionDate <= periodEndDate;
+      });
     }
 
-    const now = new Date();
-    let startDate: Date;
-    let endDate: Date;
-
-    switch (periodFilter) {
-      case 'daily':
-        startDate = startOfDay(now);
-        endDate = endOfDay(now);
-        break;
-      case 'weekly':
-        startDate = startOfWeek(now, { weekStartsOn: 1 });
-        endDate = endOfWeek(now, { weekStartsOn: 1 });
-        break;
-      case 'monthly':
-        startDate = startOfMonth(now);
-        endDate = endOfMonth(now);
-        break;
-      case 'yearly':
-        startDate = startOfYear(now);
-        endDate = endOfYear(now);
-        break;
-      default:
-        setFilteredTransactions(transactions);
-        return;
+    // Filtrer par dates personnalisées
+    if (periodFilter === 'custom' && (startDate || endDate)) {
+      filtered = filtered.filter(t => {
+        const transactionDate = new Date(t.created_at);
+        const transactionDateOnly = new Date(transactionDate.getFullYear(), transactionDate.getMonth(), transactionDate.getDate());
+        
+        if (startDate && endDate) {
+          const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+          const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+          return transactionDateOnly >= start && transactionDateOnly <= end;
+        } else if (startDate) {
+          const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+          return transactionDateOnly >= start;
+        } else if (endDate) {
+          const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+          return transactionDateOnly <= end;
+        }
+        return true;
+      });
     }
-
-    const filtered = transactions.filter(t => {
-      const transactionDate = new Date(t.created_at);
-      return transactionDate >= startDate && transactionDate <= endDate;
-    });
 
     setFilteredTransactions(filtered);
+  };
+
+  const resetCustomDates = () => {
+    setStartDate(undefined);
+    setEndDate(undefined);
   };
 
   const getStatusBadge = (status: string) => {
@@ -337,23 +369,102 @@ const JournalList = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center gap-4">
-        <Select value={periodFilter} onValueChange={setPeriodFilter}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Sélectionner la période" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Toutes les périodes</SelectItem>
-            <SelectItem value="daily">Journalier</SelectItem>
-            <SelectItem value="weekly">Hebdomadaire</SelectItem>
-            <SelectItem value="monthly">Mensuel</SelectItem>
-            <SelectItem value="yearly">Annuel</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button onClick={handlePrint} variant="outline">
-          <Printer className="h-4 w-4 mr-2" />
-          Imprimer
-        </Button>
+      <div className="flex flex-wrap gap-4 items-end">
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium">Période</label>
+          <Select value={periodFilter} onValueChange={(value) => {
+            setPeriodFilter(value);
+            if (value !== 'custom') {
+              resetCustomDates();
+            }
+          }}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Sélectionner la période" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes les périodes</SelectItem>
+              <SelectItem value="daily">Journalier</SelectItem>
+              <SelectItem value="weekly">Hebdomadaire</SelectItem>
+              <SelectItem value="monthly">Mensuel</SelectItem>
+              <SelectItem value="yearly">Annuel</SelectItem>
+              <SelectItem value="custom">Personnalisé</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {periodFilter === 'custom' && (
+          <>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Date de début</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[200px] justify-start text-left font-normal",
+                      !startDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate ? format(startDate, "PPP", { locale: fr }) : <span>Sélectionner</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={setStartDate}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Date de fin</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[200px] justify-start text-left font-normal",
+                      !endDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {endDate ? format(endDate, "PPP", { locale: fr }) : <span>Sélectionner</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={endDate}
+                    onSelect={setEndDate}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {(startDate || endDate) && (
+              <Button variant="outline" onClick={resetCustomDates} className="self-end">
+                Réinitialiser
+              </Button>
+            )}
+          </>
+        )}
+
+        <div className="ml-auto flex gap-2 self-end">
+          <div className="text-sm text-muted-foreground self-center">
+            {filteredTransactions.length} transaction(s)
+          </div>
+          <Button onClick={handlePrint} variant="outline">
+            <Printer className="h-4 w-4 mr-2" />
+            Imprimer
+          </Button>
+        </div>
       </div>
       <div className="rounded-md border">
       <Table>
