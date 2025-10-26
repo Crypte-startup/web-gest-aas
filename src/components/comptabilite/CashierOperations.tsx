@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Printer, Trash2, FileText } from 'lucide-react';
+import { Loader2, Printer, Trash2, FileText, RotateCcw } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
@@ -47,6 +47,8 @@ const CashierOperations = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
   const [periodFilter, setPeriodFilter] = useState<string>('all');
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [cashierToReset, setCashierToReset] = useState<CashierData | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const { isAdmin } = useUserRole(user?.id);
@@ -341,6 +343,77 @@ const CashierOperations = () => {
     setDeleteDialogOpen(true);
   };
 
+  const handleResetBalance = async () => {
+    if (!cashierToReset) return;
+
+    try {
+      // Calculer le solde actuel pour chaque devise
+      const balancesByurrency: Record<string, number> = {};
+      
+      cashierToReset.transactions.forEach(t => {
+        if (!balancesByurrency[t.currency]) {
+          balancesByurrency[t.currency] = 0;
+        }
+        if (t.entry_kind === 'RECETTE') {
+          balancesByurrency[t.currency] += Number(t.amount);
+        } else if (t.entry_kind === 'DEPENSE') {
+          balancesByurrency[t.currency] -= Number(t.amount);
+        }
+      });
+
+      // Réinitialiser le solde à 0 pour chaque devise
+      for (const currency of Object.keys(balancesByurrency)) {
+        // Vérifier si un starting_balance existe déjà
+        const { data: existingBalance } = await supabase
+          .from('starting_balances')
+          .select('*')
+          .eq('user_id', cashierToReset.userId)
+          .eq('currency', currency as 'USD' | 'CDF')
+          .eq('account', cashierToReset.role)
+          .maybeSingle();
+
+        if (existingBalance) {
+          // Mettre à jour le solde existant
+          await supabase
+            .from('starting_balances')
+            .update({ amount: 0 })
+            .eq('id', existingBalance.id);
+        } else {
+          // Créer un nouveau solde
+          await supabase
+            .from('starting_balances')
+            .insert([{
+              user_id: cashierToReset.userId,
+              currency: currency as 'USD' | 'CDF',
+              amount: 0,
+              account: cashierToReset.role,
+            }]);
+        }
+      }
+
+      toast({
+        title: 'Succès',
+        description: `Solde réinitialisé pour ${getRoleLabel(cashierToReset.role)}`,
+      });
+
+      fetchCashierOperations();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: error.message || 'Impossible de réinitialiser le solde',
+      });
+    } finally {
+      setResetDialogOpen(false);
+      setCashierToReset(null);
+    }
+  };
+
+  const confirmResetBalance = (cashierData: CashierData) => {
+    setCashierToReset(cashierData);
+    setResetDialogOpen(true);
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-8">
@@ -388,10 +461,22 @@ const CashierOperations = () => {
                 <span>{getRoleLabel(cashierData.role)}</span>
                 <Badge variant="outline">{cashierData.email}</Badge>
               </div>
-              <Button onClick={() => handlePrintCashier(cashierData)} variant="outline" size="sm">
-                <Printer className="h-4 w-4 mr-2" />
-                Imprimer
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={() => handlePrintCashier(cashierData)} variant="outline" size="sm">
+                  <Printer className="h-4 w-4 mr-2" />
+                  Imprimer
+                </Button>
+                {isAdmin && (
+                  <Button 
+                    onClick={() => confirmResetBalance(cashierData)} 
+                    variant="destructive" 
+                    size="sm"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Réinitialiser
+                  </Button>
+                )}
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -473,8 +558,24 @@ const CashierOperations = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteTransaction}>
-              Supprimer
+            <AlertDialogAction onClick={handleDeleteTransaction}>Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Réinitialiser le solde du caissier</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir réinitialiser le solde de {cashierToReset ? getRoleLabel(cashierToReset.role) : ''} ? 
+              Le solde de départ sera remis à 0 pour toutes les devises. Cette action ne supprimera pas les transactions existantes.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetBalance}>
+              Réinitialiser
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
