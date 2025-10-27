@@ -201,7 +201,7 @@ const OpeningBalanceForm = () => {
           amount: usdAmount,
           client_name: 'Solde d\'ouverture',
           motif: `Solde d'ouverture de la comptabilité - ${new Date().toLocaleDateString('fr-FR')}`,
-          created_by: data.cashier_id,
+          created_by: user.id,
           account_owner: data.cashier_id,
           status: 'VALIDE',
         });
@@ -236,7 +236,7 @@ const OpeningBalanceForm = () => {
           amount: cdfAmount,
           client_name: 'Solde d\'ouverture',
           motif: `Solde d'ouverture de la comptabilité - ${new Date().toLocaleDateString('fr-FR')}`,
-          created_by: data.cashier_id,
+          created_by: user.id,
           account_owner: data.cashier_id,
           status: 'VALIDE',
         });
