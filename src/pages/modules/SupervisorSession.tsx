@@ -158,14 +158,16 @@ const SupervisorSession = () => {
 
       const selectedCashier = cashiers.find(c => c.user_id === data.caissier_id);
 
-      // Insérer le solde d'ouverture
+      // Upsert le solde d'ouverture (mettre à jour s'il existe, sinon créer)
       const { error } = await supabase
         .from('starting_balances')
-        .insert({
+        .upsert({
           user_id: data.caissier_id,
           currency: data.currency,
           amount: data.amount,
           account: selectedCashier?.role || 'caissier',
+        }, {
+          onConflict: 'user_id,currency,account'
         });
 
       if (error) throw error;
