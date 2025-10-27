@@ -90,14 +90,30 @@ const Comptabilite = () => {
             {isCashier ? 'Gestion de votre caisse' : 'Gestion des recettes, dépenses et soldes comptables'}
           </p>
         </div>
-        <Button onClick={() => setIsFormOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nouvelle transaction
-        </Button>
+        {!isCashier && (
+          <Button onClick={() => setIsFormOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nouvelle transaction
+          </Button>
+        )}
       </div>
 
       {isCashier ? (
         <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Opérations de caisse</CardTitle>
+              <CardDescription>
+                Gérez vos recettes, dépenses et clôture de journée
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button onClick={() => setIsFormOpen(true)} className="w-full">
+                <Plus className="h-4 w-4 mr-2" />
+                Nouvelle transaction
+              </Button>
+            </CardContent>
+          </Card>
           <div className="max-w-2xl mx-auto">
             <CloseDayForm />
           </div>
