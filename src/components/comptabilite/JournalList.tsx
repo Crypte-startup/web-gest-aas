@@ -47,7 +47,8 @@ const JournalList = () => {
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { isAdmin } = useUserRole(user?.id);
+  const { isAdmin, hasRole } = useUserRole(user?.id);
+  const canManage = isAdmin || hasRole('resp_compta');
 
   const fetchTransactions = async () => {
     try {
@@ -507,7 +508,7 @@ const JournalList = () => {
                   >
                     <FileText className="h-4 w-4" />
                   </Button>
-                  {isAdmin && (
+                  {canManage && (
                     <Button
                       variant="ghost"
                       size="sm"

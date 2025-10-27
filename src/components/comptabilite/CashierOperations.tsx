@@ -51,7 +51,8 @@ const CashierOperations = () => {
   const [cashierToReset, setCashierToReset] = useState<CashierData | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { isAdmin } = useUserRole(user?.id);
+  const { isAdmin, hasRole } = useUserRole(user?.id);
+  const canManage = isAdmin || hasRole('resp_compta');
 
   const fetchCashierOperations = async () => {
     try {
@@ -466,7 +467,7 @@ const CashierOperations = () => {
                   <Printer className="h-4 w-4 mr-2" />
                   Imprimer
                 </Button>
-                {isAdmin && (
+                {canManage && (
                   <Button 
                     onClick={() => confirmResetBalance(cashierData)} 
                     variant="destructive" 
@@ -526,7 +527,7 @@ const CashierOperations = () => {
                           >
                             <FileText className="h-4 w-4" />
                           </Button>
-                          {isAdmin && (
+                          {canManage && (
                             <Button
                               variant="ghost"
                               size="sm"
