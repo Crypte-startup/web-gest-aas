@@ -159,7 +159,7 @@ const SupervisorSession = () => {
       const selectedCashier = cashiers.find(c => c.user_id === data.caissier_id);
 
       // Upsert le solde d'ouverture (mettre à jour s'il existe, sinon créer)
-      const { error } = await supabase
+      const { error: balanceError } = await supabase
         .from('starting_balances')
         .upsert({
           user_id: data.caissier_id,
@@ -170,7 +170,23 @@ const SupervisorSession = () => {
           onConflict: 'user_id,currency,account'
         });
 
-      if (error) throw error;
+      if (balanceError) throw balanceError;
+
+      // Créer une transaction RECETTE dans le ledger pour que le montant apparaisse dans le solde du caissier
+      const { error: ledgerError } = await supabase
+        .from('ledger')
+        .insert({
+          entry_id: `OPENING-${Date.now()}`,
+          entry_kind: 'RECETTE',
+          currency: data.currency,
+          amount: data.amount,
+          account_owner: data.caissier_id,
+          created_by: user?.id,
+          motif: 'Solde d\'ouverture attribué par superviseur',
+          status: 'APPROUVE'
+        });
+
+      if (ledgerError) throw ledgerError;
 
       toast({
         title: 'Succès',
