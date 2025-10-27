@@ -12,6 +12,7 @@ import Clientele from "./pages/modules/Clientele";
 import RH from "./pages/modules/RH";
 import Commercial from "./pages/modules/Commercial";
 import UsersManagement from "./pages/modules/Users";
+import Session from "./pages/modules/Session";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<Dashboard />} />
             <Route path="comptabilite" element={<Comptabilite />} />
+            <Route path="session" element={<Session />} />
             <Route path="logistique" element={<Logistique />} />
             <Route path="clientele" element={<Clientele />} />
             <Route path="rh" element={<RH />} />

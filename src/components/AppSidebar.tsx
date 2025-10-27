@@ -9,6 +9,7 @@ import {
   Settings,
   LogOut,
   Building2,
+  Clock,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -31,6 +32,7 @@ import { Separator } from '@/components/ui/separator';
 const navigationItems = [
   { title: 'Tableau de bord', url: '/dashboard', icon: LayoutDashboard, roles: [] },
   { title: 'Comptabilité', url: '/dashboard/comptabilite', icon: Calculator, roles: ['admin', 'resp_compta', 'caissier', 'caissier1', 'caissier2', 'caissier3', 'caissier4', 'caissier5'] },
+  { title: 'Session', url: '/dashboard/session', icon: Clock, roles: ['caissier', 'caissier1', 'caissier2', 'caissier3', 'caissier4', 'caissier5'] },
   { title: 'Logistique', url: '/dashboard/logistique', icon: Package, roles: ['admin', 'resp_log', 'prepose_log'] },
   { title: 'Clientèle', url: '/dashboard/clientele', icon: Users, roles: ['admin', 'resp_clientele', 'prepose_clientele'] },
   { title: 'Ressources Humaines', url: '/dashboard/rh', icon: UserCircle, roles: ['admin', 'resp_rh', 'prepose_rh'] },
