@@ -21,11 +21,17 @@ interface Balance {
   cdf: number;
 }
 
+interface StartingBalance {
+  usd: number;
+  cdf: number;
+}
+
 const Session = () => {
   const { user } = useAuth();
   const { roles } = useUserRole(user?.id);
   const { toast } = useToast();
   const [balance, setBalance] = useState<Balance>({ usd: 0, cdf: 0 });
+  const [startingBalance, setStartingBalance] = useState<StartingBalance>({ usd: 0, cdf: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -44,6 +50,27 @@ const Session = () => {
     try {
       setIsLoading(true);
       
+      // Récupérer les soldes d'ouverture
+      const { data: startingBalances, error: startingError } = await supabase
+        .from('starting_balances')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (startingError) throw startingError;
+
+      let startingUsd = 0;
+      let startingCdf = 0;
+
+      startingBalances?.forEach((sb) => {
+        if (sb.currency === 'USD') {
+          startingUsd += Number(sb.amount);
+        } else if (sb.currency === 'CDF') {
+          startingCdf += Number(sb.amount);
+        }
+      });
+
+      setStartingBalance({ usd: startingUsd, cdf: startingCdf });
+      
       // Récupérer toutes les transactions validées du caissier
       const { data: transactions, error } = await supabase
         .from('ledger')
@@ -53,8 +80,8 @@ const Session = () => {
 
       if (error) throw error;
 
-      let usdBalance = 0;
-      let cdfBalance = 0;
+      let usdBalance = startingUsd;
+      let cdfBalance = startingCdf;
 
       transactions?.forEach((t) => {
         if (t.entry_kind === 'RECETTE') {
@@ -202,6 +229,11 @@ const Session = () => {
             <p className="text-xs text-muted-foreground">
               Solde disponible en USD
             </p>
+            {startingBalance.usd > 0 && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Solde d'ouverture: ${startingBalance.usd.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -217,6 +249,11 @@ const Session = () => {
             <p className="text-xs text-muted-foreground">
               Solde disponible en CDF
             </p>
+            {startingBalance.cdf > 0 && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Solde d'ouverture: {startingBalance.cdf.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} FC
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
