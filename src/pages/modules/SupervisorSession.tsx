@@ -36,11 +36,17 @@ interface Transfer {
   creator_email?: string;
 }
 
+interface Balance {
+  usd: number;
+  cdf: number;
+}
+
 const SupervisorSession = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [cashiers, setCashiers] = useState<Cashier[]>([]);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
+  const [respComptaBalance, setRespComptaBalance] = useState<Balance>({ usd: 0, cdf: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -92,6 +98,42 @@ const SupervisorSession = () => {
     }
   };
 
+  const fetchRespComptaBalance = async () => {
+    if (!user) return;
+    
+    try {
+      // Récupérer toutes les transactions du resp_compta
+      const { data, error } = await supabase
+        .from('ledger')
+        .select('entry_kind, currency, amount')
+        .eq('account_owner', user.id);
+
+      if (error) throw error;
+
+      // Calculer le solde : somme(RECETTE) - somme(DEPENSE)
+      const balances = { usd: 0, cdf: 0 };
+      
+      data?.forEach(transaction => {
+        const amount = Number(transaction.amount);
+        const currencyKey = transaction.currency === 'USD' ? 'usd' : 'cdf';
+        
+        if (transaction.entry_kind === 'RECETTE') {
+          balances[currencyKey] += amount;
+        } else if (transaction.entry_kind === 'DEPENSE') {
+          balances[currencyKey] -= amount;
+        }
+      });
+
+      setRespComptaBalance(balances);
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: error.message || 'Impossible de charger le solde',
+      });
+    }
+  };
+
   const fetchTransfers = async () => {
     try {
       // Récupérer les transferts reçus (RECETTE) sans account_owner (créés par les caissiers)
@@ -134,7 +176,7 @@ const SupervisorSession = () => {
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      await Promise.all([fetchCashiers(), fetchTransfers()]);
+      await Promise.all([fetchCashiers(), fetchTransfers(), fetchRespComptaBalance()]);
       setIsLoading(false);
     };
 
@@ -153,10 +195,22 @@ const SupervisorSession = () => {
       return;
     }
 
+    // Vérifier le solde du resp_compta
+    const currentBalance = data.currency === 'USD' ? respComptaBalance.usd : respComptaBalance.cdf;
+    if (currentBalance < data.amount) {
+      toast({
+        variant: 'destructive',
+        title: 'Solde insuffisant',
+        description: `Vous n'avez que ${currentBalance.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} ${data.currency} disponible`,
+      });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
       const selectedCashier = cashiers.find(c => c.user_id === data.caissier_id);
+      const transferId = `OPENING-${Date.now()}`;
 
       // Upsert le solde d'ouverture (mettre à jour s'il existe, sinon créer)
       const { error: balanceError } = await supabase
@@ -172,27 +226,45 @@ const SupervisorSession = () => {
 
       if (balanceError) throw balanceError;
 
-      // Créer une transaction RECETTE dans le ledger pour que le montant apparaisse dans le solde du caissier
-      const { error: ledgerError } = await supabase
+      // Transaction 1: Dépense pour resp_compta (diminue son solde)
+      const { error: expenseError } = await supabase
         .from('ledger')
         .insert({
-          entry_id: `OPENING-${Date.now()}`,
+          entry_id: `${transferId}-OUT`,
+          entry_kind: 'DEPENSE',
+          currency: data.currency,
+          amount: data.amount,
+          account_owner: user.id,
+          created_by: user.id,
+          motif: `Attribution solde ouverture à ${selectedCashier?.email}`,
+          status: 'VALIDE'
+        });
+
+      if (expenseError) throw expenseError;
+
+      // Transaction 2: Recette pour caissier (augmente son solde)
+      const { error: incomeError } = await supabase
+        .from('ledger')
+        .insert({
+          entry_id: `${transferId}-IN`,
           entry_kind: 'RECETTE',
           currency: data.currency,
           amount: data.amount,
           account_owner: data.caissier_id,
-          created_by: user?.id,
+          created_by: user.id,
           motif: 'Solde d\'ouverture attribué par superviseur',
           status: 'APPROUVE'
         });
 
-      if (ledgerError) throw ledgerError;
+      if (incomeError) throw incomeError;
 
       toast({
         title: 'Succès',
         description: `Solde d'ouverture de ${data.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} ${data.currency} attribué au caissier`,
       });
 
+      // Rafraîchir le solde du resp_compta
+      await fetchRespComptaBalance();
       reset();
     } catch (error: any) {
       toast({
@@ -220,6 +292,44 @@ const SupervisorSession = () => {
         <p className="text-muted-foreground">
           Attribuez des soldes d'ouverture et suivez les transferts des caissiers
         </p>
+      </div>
+
+      {/* Solde du resp_compta */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Mon Solde USD
+            </CardTitle>
+            <CardDescription>Fonds disponibles en dollars</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">
+              ${respComptaBalance.usd.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+            </p>
+            {respComptaBalance.usd < 1000 && (
+              <p className="text-sm text-destructive mt-2">⚠️ Solde faible</p>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Mon Solde CDF
+            </CardTitle>
+            <CardDescription>Fonds disponibles en francs congolais</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">
+              {respComptaBalance.cdf.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} FC
+            </p>
+            {respComptaBalance.cdf < 100000 && (
+              <p className="text-sm text-destructive mt-2">⚠️ Solde faible</p>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
