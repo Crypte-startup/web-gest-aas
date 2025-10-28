@@ -8,9 +8,11 @@ import { supabase } from '@/integrations/supabase/client';
 import TransactionForm from '@/components/comptabilite/TransactionForm';
 import JournalList from '@/components/comptabilite/JournalList';
 import ApprovalList from '@/components/comptabilite/ApprovalList';
+import { useAuth } from '@/hooks/useAuth';
 
 
 const Comptabilite = () => {
+  const { user } = useAuth();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [balances, setBalances] = useState({
     usd: 0,
@@ -22,11 +24,14 @@ const Comptabilite = () => {
   });
 
   const fetchBalances = async () => {
+    if (!user) return;
+    
     try {
       const { data: transactions } = await supabase
         .from('ledger')
         .select('amount, currency, entry_kind, status')
-        .eq('status', 'VALIDE');
+        .eq('status', 'VALIDE')
+        .eq('account_owner', user.id);
 
       if (transactions) {
         let usd = 0;
@@ -64,8 +69,10 @@ const Comptabilite = () => {
   };
 
   useEffect(() => {
-    fetchBalances();
-  }, []);
+    if (user) {
+      fetchBalances();
+    }
+  }, [user]);
 
   const handleFormSuccess = () => {
     setIsFormOpen(false);
