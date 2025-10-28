@@ -74,6 +74,66 @@ export type Database = {
         }
         Relationships: []
       }
+      closing_transfers: {
+        Row: {
+          cashier_id: string
+          cashier_role: string
+          closing_balance_cdf: number
+          closing_balance_usd: number
+          closing_date: string
+          created_at: string | null
+          created_by: string | null
+          expected_balance_cdf: number
+          expected_balance_usd: number
+          gap_cdf: number | null
+          gap_usd: number | null
+          id: string
+          notes: string | null
+          opening_balance_cdf: number | null
+          opening_balance_usd: number | null
+          transferred_cdf: number
+          transferred_usd: number
+        }
+        Insert: {
+          cashier_id: string
+          cashier_role: string
+          closing_balance_cdf: number
+          closing_balance_usd: number
+          closing_date?: string
+          created_at?: string | null
+          created_by?: string | null
+          expected_balance_cdf: number
+          expected_balance_usd: number
+          gap_cdf?: number | null
+          gap_usd?: number | null
+          id?: string
+          notes?: string | null
+          opening_balance_cdf?: number | null
+          opening_balance_usd?: number | null
+          transferred_cdf: number
+          transferred_usd: number
+        }
+        Update: {
+          cashier_id?: string
+          cashier_role?: string
+          closing_balance_cdf?: number
+          closing_balance_usd?: number
+          closing_date?: string
+          created_at?: string | null
+          created_by?: string | null
+          expected_balance_cdf?: number
+          expected_balance_usd?: number
+          gap_cdf?: number | null
+          gap_usd?: number | null
+          id?: string
+          notes?: string | null
+          opening_balance_cdf?: number | null
+          opening_balance_usd?: number | null
+          transferred_cdf?: number
+          transferred_usd?: number
+        }
+        Relationships: []
+      }
       commercial_clients: {
         Row: {
           adresse: string | null

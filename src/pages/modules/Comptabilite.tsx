@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import TransactionForm from '@/components/comptabilite/TransactionForm';
 import JournalList from '@/components/comptabilite/JournalList';
 import ApprovalList from '@/components/comptabilite/ApprovalList';
-import CashierOperations from '@/components/comptabilite/CashierOperations';
+
 
 const Comptabilite = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -191,14 +191,10 @@ const Comptabilite = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="journal" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="journal">
                 <BookOpen className="h-4 w-4 mr-2" />
                 Journal
-              </TabsTrigger>
-              <TabsTrigger value="cashiers">
-                <Users className="h-4 w-4 mr-2" />
-                Opérations Caissiers
               </TabsTrigger>
               <TabsTrigger value="approval">
                 <CheckCircle className="h-4 w-4 mr-2" />
@@ -207,9 +203,6 @@ const Comptabilite = () => {
             </TabsList>
             <TabsContent value="journal" className="mt-4">
               <JournalList />
-            </TabsContent>
-            <TabsContent value="cashiers" className="mt-4">
-              <CashierOperations />
             </TabsContent>
             <TabsContent value="approval" className="mt-4">
               <ApprovalList />

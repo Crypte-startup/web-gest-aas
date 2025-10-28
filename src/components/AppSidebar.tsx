@@ -34,6 +34,7 @@ const navigationItems = [
   { title: 'Comptabilité', url: '/dashboard/comptabilite', icon: Calculator, roles: ['admin', 'resp_compta', 'caissier', 'caissier1', 'caissier2', 'caissier3', 'caissier4', 'caissier5'] },
   { title: 'Session', url: '/dashboard/session', icon: Clock, roles: ['caissier', 'caissier1', 'caissier2', 'caissier3', 'caissier4', 'caissier5'] },
   { title: 'Sessions', url: '/dashboard/supervisor-session', icon: Users, roles: ['admin', 'resp_compta'] },
+  { title: 'Rapports de Clôture', url: '/dashboard/closure-reports', icon: Building2, roles: ['admin', 'resp_compta'] },
   { title: 'Logistique', url: '/dashboard/logistique', icon: Package, roles: ['admin', 'resp_log', 'prepose_log'] },
   { title: 'Clientèle', url: '/dashboard/clientele', icon: Users, roles: ['admin', 'resp_clientele', 'prepose_clientele'] },
   { title: 'Ressources Humaines', url: '/dashboard/rh', icon: UserCircle, roles: ['admin', 'resp_rh', 'prepose_rh'] },
