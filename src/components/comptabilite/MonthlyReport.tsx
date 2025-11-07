@@ -2,14 +2,20 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, TrendingUp, TrendingDown, Activity, AlertTriangle, DollarSign, Calendar } from 'lucide-react';
+import { Download, TrendingUp, TrendingDown, Activity, AlertTriangle, Calendar, Save, Archive } from 'lucide-react';
 import { useAnalyticsData, AnalyticsFilters } from '@/hooks/useAnalyticsData';
+import { useYearlyTrendData } from '@/hooks/useYearlyTrendData';
 import { TrendChart } from './charts/TrendChart';
 import { CashierComparisonChart } from './charts/CashierComparisonChart';
 import { DistributionChart } from './charts/DistributionChart';
 import { GapAnalysisChart } from './charts/GapAnalysisChart';
+import { YearlyTrendChart } from './charts/YearlyTrendChart';
+import { ReportHistory } from './ReportHistory';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { format } from 'date-fns';
@@ -18,9 +24,12 @@ import { cn } from '@/lib/utils';
 import { ArrowUp, ArrowDown } from 'lucide-react';
 
 export const MonthlyReport = () => {
+  const { user } = useAuth();
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
+  const [viewMode, setViewMode] = useState<'generate' | 'history'>('generate');
+  const [loadingArchive, setLoadingArchive] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<AnalyticsFilters>({
     startDate: new Date(selectedYear, selectedMonth, 1),
@@ -30,6 +39,7 @@ export const MonthlyReport = () => {
   });
 
   const { loading, cashierData, dailyData, kpis, comparisonKPIs, previousPeriodLabel } = useAnalyticsData(filters);
+  const { loading: loadingYearly, yearlyData } = useYearlyTrendData(selectedYear);
 
   useEffect(() => {
     const startDate = new Date(selectedYear, selectedMonth, 1);
@@ -37,14 +47,75 @@ export const MonthlyReport = () => {
     setFilters({ ...filters, startDate, endDate });
   }, [selectedMonth, selectedYear]);
 
+  const handleArchiveReport = async () => {
+    if (!user) return;
+
+    try {
+      setLoadingArchive('archive');
+      
+      // Check if report already exists
+      const { data: existingReport } = await supabase
+        .from('monthly_reports')
+        .select('id')
+        .eq('report_month', selectedMonth)
+        .eq('report_year', selectedYear)
+        .maybeSingle();
+
+      const reportData = {
+        report_month: selectedMonth,
+        report_year: selectedYear,
+        generated_by: user.id,
+        kpis: JSON.parse(JSON.stringify(kpis)),
+        comparison_data: JSON.parse(JSON.stringify(comparisonKPIs)),
+        cashier_summary: JSON.parse(JSON.stringify(cashierData)),
+      };
+
+      if (existingReport) {
+        // Update existing report
+        const { error } = await supabase
+          .from('monthly_reports')
+          .update(reportData)
+          .eq('id', existingReport.id);
+
+        if (error) throw error;
+        
+        toast({
+          title: "Rapport mis à jour",
+          description: "Le rapport a été mis à jour dans l'archive",
+        });
+      } else {
+        // Create new report
+        const { error } = await supabase
+          .from('monthly_reports')
+          .insert([reportData]);
+
+        if (error) throw error;
+        
+        toast({
+          title: "Rapport archivé",
+          description: "Le rapport a été enregistré dans l'archive",
+        });
+      }
+    } catch (error) {
+      console.error('Error archiving report:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'archiver le rapport",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingArchive(null);
+    }
+  };
+
   const handleExportPDF = async () => {
     try {
+      setLoadingArchive('pdf');
       toast({ title: "Génération du rapport PDF...", description: "Veuillez patienter" });
       
       const element = document.getElementById('monthly-report-content');
       if (!element) return;
 
-      // Temporarily remove any interactive elements or adjust styles for printing
       const canvas = await html2canvas(element, { 
         scale: 2,
         useCORS: true,
@@ -61,11 +132,9 @@ export const MonthlyReport = () => {
       let heightLeft = imgHeight;
       let position = 0;
 
-      // Add first page
       pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
       heightLeft -= pdfHeight;
 
-      // Add additional pages if content is longer than one page
       while (heightLeft > 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
@@ -76,11 +145,22 @@ export const MonthlyReport = () => {
       const fileName = `rapport-mensuel-${format(new Date(selectedYear, selectedMonth), 'MMMM-yyyy', { locale: fr })}.pdf`;
       pdf.save(fileName);
       
+      // Auto-archive after successful PDF generation
+      await handleArchiveReport();
+      
       toast({ title: "Rapport PDF généré avec succès" });
     } catch (error) {
       console.error('Error generating PDF:', error);
       toast({ title: "Erreur", description: "Impossible de générer le PDF", variant: "destructive" });
+    } finally {
+      setLoadingArchive(null);
     }
+  };
+
+  const handleViewArchivedReport = (month: number, year: number) => {
+    setSelectedMonth(month);
+    setSelectedYear(year);
+    setViewMode('generate');
   };
 
   const months = [
@@ -95,62 +175,102 @@ export const MonthlyReport = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header with Month/Year Selector */}
+      {/* Header with Mode Tabs */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              <CardTitle>Rapport Mensuel Automatique</CardTitle>
+              <CardTitle>Rapport Mensuel</CardTitle>
             </div>
-            <Button onClick={handleExportPDF} variant="default">
-              <Download className="h-4 w-4 mr-2" />
-              Exporter en PDF
-            </Button>
+            <div className="flex gap-2">
+              {viewMode === 'generate' && (
+                <>
+                  <Button 
+                    onClick={handleArchiveReport} 
+                    variant="outline"
+                    disabled={loading || loadingArchive === 'archive'}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {loadingArchive === 'archive' ? 'Archivage...' : 'Archiver'}
+                  </Button>
+                  <Button 
+                    onClick={handleExportPDF} 
+                    variant="default"
+                    disabled={loading || loadingArchive === 'pdf'}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    {loadingArchive === 'pdf' ? 'Génération...' : 'PDF & Archiver'}
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]">
-              <label className="text-sm font-medium mb-2 block">Mois</label>
-              <Select 
-                value={selectedMonth.toString()} 
-                onValueChange={(value) => setSelectedMonth(parseInt(value))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {months.map((month, index) => (
-                    <SelectItem key={index} value={index.toString()}>
-                      {month}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'generate' | 'history')}>
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="generate">
+                <Calendar className="h-4 w-4 mr-2" />
+                Générer un rapport
+              </TabsTrigger>
+              <TabsTrigger value="history">
+                <Archive className="h-4 w-4 mr-2" />
+                Historique
+              </TabsTrigger>
+            </TabsList>
 
-            <div className="flex-1 min-w-[200px]">
-              <label className="text-sm font-medium mb-2 block">Année</label>
-              <Select 
-                value={selectedYear.toString()} 
-                onValueChange={(value) => setSelectedYear(parseInt(value))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {years.map((year) => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+            <TabsContent value="generate">
+              <div className="flex flex-wrap gap-4">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="text-sm font-medium mb-2 block">Mois</label>
+                  <Select 
+                    value={selectedMonth.toString()} 
+                    onValueChange={(value) => setSelectedMonth(parseInt(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {months.map((month, index) => (
+                        <SelectItem key={index} value={index.toString()}>
+                          {month}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex-1 min-w-[200px]">
+                  <label className="text-sm font-medium mb-2 block">Année</label>
+                  <Select 
+                    value={selectedYear.toString()} 
+                    onValueChange={(value) => setSelectedYear(parseInt(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {years.map((year) => (
+                        <SelectItem key={year} value={year.toString()}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="history">
+              <ReportHistory onViewReport={handleViewArchivedReport} />
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
+
+      {viewMode === 'generate' && (
+        <>
 
       {/* Report Content */}
       <div id="monthly-report-content" className="space-y-6 bg-background p-6 rounded-lg">
@@ -359,7 +479,12 @@ export const MonthlyReport = () => {
           </Card>
         </div>
 
-        {/* Charts */}
+        {/* Yearly Trend Chart */}
+        {!loadingYearly && yearlyData.length > 0 && (
+          <YearlyTrendChart data={yearlyData} year={selectedYear} currency="BOTH" />
+        )}
+
+        {/* Monthly Charts */}
         <TrendChart data={dailyData} currency="BOTH" />
         
         <div className="grid gap-6 lg:grid-cols-2">
@@ -446,6 +571,8 @@ export const MonthlyReport = () => {
           <p className="mt-1">Document confidentiel - À usage interne uniquement</p>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 };

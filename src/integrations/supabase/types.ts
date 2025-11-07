@@ -499,6 +499,45 @@ export type Database = {
         }
         Relationships: []
       }
+      monthly_reports: {
+        Row: {
+          cashier_summary: Json
+          comparison_data: Json | null
+          created_at: string
+          generated_at: string
+          generated_by: string | null
+          id: string
+          kpis: Json
+          notes: string | null
+          report_month: number
+          report_year: number
+        }
+        Insert: {
+          cashier_summary: Json
+          comparison_data?: Json | null
+          created_at?: string
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          kpis: Json
+          notes?: string | null
+          report_month: number
+          report_year: number
+        }
+        Update: {
+          cashier_summary?: Json
+          comparison_data?: Json | null
+          created_at?: string
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          kpis?: Json
+          notes?: string | null
+          report_month?: number
+          report_year?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
