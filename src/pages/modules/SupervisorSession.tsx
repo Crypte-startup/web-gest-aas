@@ -265,6 +265,23 @@ const SupervisorSession = () => {
 
       if (incomeError) throw incomeError;
 
+      // Log l'activité pour traçabilité
+      await supabase.rpc('log_activity', {
+        p_action_type: 'ATTRIBUTION_SOLDE_OUVERTURE',
+        p_table_name: 'ledger',
+        p_record_id: transferId,
+        p_details: {
+          caissier_id: data.caissier_id,
+          caissier_email: selectedCashier?.email,
+          caissier_role: selectedCashier?.role,
+          currency: data.currency,
+          amount: data.amount,
+          entry_id_out: `${transferId}-OUT`,
+          entry_id_in: `${transferId}-IN`,
+          resp_compta_balance_before: data.currency === 'USD' ? respComptaBalance.usd : respComptaBalance.cdf,
+        }
+      });
+
       toast({
         title: 'Succès',
         description: `Solde d'ouverture de ${data.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} ${data.currency} attribué au caissier`,
