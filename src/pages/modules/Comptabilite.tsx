@@ -3,11 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calculator, TrendingUp, TrendingDown, Wallet, Plus, BookOpen, CheckCircle, Users } from 'lucide-react';
+import { Calculator, TrendingUp, TrendingDown, Wallet, Plus, BookOpen, CheckCircle, BarChart3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import TransactionForm from '@/components/comptabilite/TransactionForm';
 import JournalList from '@/components/comptabilite/JournalList';
 import ApprovalList from '@/components/comptabilite/ApprovalList';
+import { DashboardAnalytics } from '@/components/comptabilite/DashboardAnalytics';
 import { useAuth } from '@/hooks/useAuth';
 
 
@@ -193,12 +194,16 @@ const Comptabilite = () => {
             Gestion comptable
           </CardTitle>
           <CardDescription>
-            Journal des transactions et approbation des reçus
+            Tableau de bord, journal des transactions et approbation des reçus
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="journal" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+          <Tabs defaultValue="dashboard" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="dashboard">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Tableau de bord
+              </TabsTrigger>
               <TabsTrigger value="journal">
                 <BookOpen className="h-4 w-4 mr-2" />
                 Journal
@@ -208,6 +213,9 @@ const Comptabilite = () => {
                 Approbation
               </TabsTrigger>
             </TabsList>
+            <TabsContent value="dashboard" className="mt-4">
+              <DashboardAnalytics />
+            </TabsContent>
             <TabsContent value="journal" className="mt-4">
               <JournalList />
             </TabsContent>
