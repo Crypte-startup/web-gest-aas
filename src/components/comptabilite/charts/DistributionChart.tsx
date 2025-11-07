@@ -47,8 +47,7 @@ export const DistributionChart = ({ data, currency }: DistributionChartProps) =>
   };
 
   const renderLabel = (entry: any) => {
-    const total = entry.payload.reduce((sum: number, item: any) => sum + item.value, 0);
-    const percent = ((entry.value / total) * 100).toFixed(1);
+    const percent = (entry.percent * 100).toFixed(1);
     return `${percent}%`;
   };
 
