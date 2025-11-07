@@ -3,12 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calculator, TrendingUp, TrendingDown, Wallet, Plus, BookOpen, CheckCircle, BarChart3 } from 'lucide-react';
+import { Calculator, TrendingUp, TrendingDown, Wallet, Plus, BookOpen, CheckCircle, BarChart3, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import TransactionForm from '@/components/comptabilite/TransactionForm';
 import JournalList from '@/components/comptabilite/JournalList';
 import ApprovalList from '@/components/comptabilite/ApprovalList';
 import { DashboardAnalytics } from '@/components/comptabilite/DashboardAnalytics';
+import { MonthlyReport } from '@/components/comptabilite/MonthlyReport';
 import { useAuth } from '@/hooks/useAuth';
 
 
@@ -199,10 +200,14 @@ const Comptabilite = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="dashboard">
                 <BarChart3 className="h-4 w-4 mr-2" />
                 Tableau de bord
+              </TabsTrigger>
+              <TabsTrigger value="monthly">
+                <FileText className="h-4 w-4 mr-2" />
+                Rapport mensuel
               </TabsTrigger>
               <TabsTrigger value="journal">
                 <BookOpen className="h-4 w-4 mr-2" />
@@ -215,6 +220,9 @@ const Comptabilite = () => {
             </TabsList>
             <TabsContent value="dashboard" className="mt-4">
               <DashboardAnalytics />
+            </TabsContent>
+            <TabsContent value="monthly" className="mt-4">
+              <MonthlyReport />
             </TabsContent>
             <TabsContent value="journal" className="mt-4">
               <JournalList />
