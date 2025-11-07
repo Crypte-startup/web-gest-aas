@@ -3,11 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Eye, Trash2, FileText } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Eye, Trash2, FileText, FileSpreadsheet } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { exportComparisonToExcel } from '@/lib/excelExport';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,6 +42,8 @@ export const ReportHistory = ({ onViewReport }: ReportHistoryProps) => {
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [reportToDelete, setReportToDelete] = useState<string | null>(null);
+  const [selectedReports, setSelectedReports] = useState<Set<string>>(new Set());
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     fetchReports();
@@ -98,6 +102,70 @@ export const ReportHistory = ({ onViewReport }: ReportHistoryProps) => {
     }
   };
 
+  const toggleReportSelection = (reportId: string) => {
+    const newSelected = new Set(selectedReports);
+    if (newSelected.has(reportId)) {
+      newSelected.delete(reportId);
+    } else {
+      newSelected.add(reportId);
+    }
+    setSelectedReports(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedReports.size === reports.length) {
+      setSelectedReports(new Set());
+    } else {
+      setSelectedReports(new Set(reports.map(r => r.id)));
+    }
+  };
+
+  const handleExportComparison = async () => {
+    if (selectedReports.size === 0) {
+      toast({
+        title: "Sélection requise",
+        description: "Veuillez sélectionner au moins un rapport à exporter",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsExporting(true);
+      
+      const selectedReportData = reports
+        .filter(r => selectedReports.has(r.id))
+        .sort((a, b) => {
+          if (a.report_year !== b.report_year) {
+            return a.report_year - b.report_year;
+          }
+          return a.report_month - b.report_month;
+        })
+        .map(r => ({
+          month: r.report_month,
+          year: r.report_year,
+          kpis: r.kpis,
+          cashier_summary: r.cashier_summary,
+        }));
+
+      exportComparisonToExcel(selectedReportData);
+
+      toast({
+        title: "Export réussi",
+        description: `${selectedReports.size} rapport(s) exporté(s) avec succès`,
+      });
+    } catch (error) {
+      console.error('Error exporting comparison:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'exporter la comparaison",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const monthNames = [
     'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
     'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
@@ -133,13 +201,27 @@ export const ReportHistory = ({ onViewReport }: ReportHistoryProps) => {
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Historique des rapports
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            {reports.length} rapport{reports.length > 1 ? 's' : ''} archivé{reports.length > 1 ? 's' : ''}
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Historique des rapports
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                {reports.length} rapport{reports.length > 1 ? 's' : ''} archivé{reports.length > 1 ? 's' : ''}
+                {selectedReports.size > 0 && ` · ${selectedReports.size} sélectionné${selectedReports.size > 1 ? 's' : ''}`}
+              </p>
+            </div>
+            {selectedReports.size > 0 && (
+              <Button 
+                onClick={handleExportComparison}
+                disabled={isExporting}
+              >
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                {isExporting ? 'Export en cours...' : `Exporter la comparaison (${selectedReports.size})`}
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {reports.length === 0 ? (
@@ -150,6 +232,13 @@ export const ReportHistory = ({ onViewReport }: ReportHistoryProps) => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedReports.size === reports.length && reports.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Tout sélectionner"
+                    />
+                  </TableHead>
                   <TableHead>Période</TableHead>
                   <TableHead>Généré le</TableHead>
                   <TableHead>Recettes USD</TableHead>
@@ -164,6 +253,13 @@ export const ReportHistory = ({ onViewReport }: ReportHistoryProps) => {
                   const status = getReportStatus(report.generated_at);
                   return (
                     <TableRow key={report.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedReports.has(report.id)}
+                          onCheckedChange={() => toggleReportSelection(report.id)}
+                          aria-label={`Sélectionner ${monthNames[report.report_month]} ${report.report_year}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">
                         {monthNames[report.report_month]} {report.report_year}
                       </TableCell>
