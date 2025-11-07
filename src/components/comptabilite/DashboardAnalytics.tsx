@@ -2,20 +2,27 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Printer, TrendingUp, TrendingDown, Activity, Users, DollarSign, AlertTriangle } from 'lucide-react';
+import { Download, Printer, TrendingUp, TrendingDown, Activity, AlertTriangle, Calendar as CalendarIcon, FileSpreadsheet, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAnalyticsData, AnalyticsFilters } from '@/hooks/useAnalyticsData';
 import { TrendChart } from './charts/TrendChart';
 import { CashierComparisonChart } from './charts/CashierComparisonChart';
 import { DistributionChart } from './charts/DistributionChart';
 import { GapAnalysisChart } from './charts/GapAnalysisChart';
+import { PeriodComparisonChart } from './charts/PeriodComparisonChart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
 import { toast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { exportToExcel } from '@/lib/excelExport';
+import { cn } from '@/lib/utils';
 
 export const DashboardAnalytics = () => {
   const { user } = useAuth();
@@ -27,7 +34,9 @@ export const DashboardAnalytics = () => {
     currency: 'BOTH',
   });
   const [cashiers, setCashiers] = useState<Array<{ id: string; name: string }>>([]);
-  const { loading, cashierData, dailyData, kpis } = useAnalyticsData(filters);
+  const [customPeriod, setCustomPeriod] = useState(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const { loading, cashierData, dailyData, kpis, comparisonKPIs, previousPeriodLabel } = useAnalyticsData(filters);
 
   useEffect(() => {
     fetchCashiers();
@@ -57,6 +66,12 @@ export const DashboardAnalytics = () => {
   };
 
   const setPeriod = (period: string) => {
+    if (period === 'custom') {
+      setCustomPeriod(true);
+      return;
+    }
+
+    setCustomPeriod(false);
     const today = new Date();
     let startDate = new Date();
 
@@ -84,6 +99,16 @@ export const DashboardAnalytics = () => {
     }
 
     setFilters({ ...filters, startDate, endDate: new Date() });
+  };
+
+  const handleExcelExport = () => {
+    try {
+      exportToExcel(cashierData, dailyData, kpis, comparisonKPIs, filters, previousPeriodLabel);
+      toast({ title: "Export réussi", description: "Le fichier Excel a été téléchargé" });
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast({ title: "Erreur", description: "Impossible d'exporter vers Excel", variant: "destructive" });
+    }
   };
 
   const handleExportPDF = async () => {
@@ -149,9 +174,63 @@ export const DashboardAnalytics = () => {
                   <SelectItem value="30days">30 derniers jours</SelectItem>
                   <SelectItem value="thisMonth">Ce mois</SelectItem>
                   <SelectItem value="lastMonth">Mois dernier</SelectItem>
+                  <SelectItem value="custom">Personnalisé</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {customPeriod && (
+              <div className="flex-1 min-w-[200px]">
+                <label className="text-sm font-medium mb-2 block">Dates</label>
+                <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !filters.startDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {filters.startDate && filters.endDate
+                        ? `${format(filters.startDate, 'dd/MM/yyyy', { locale: fr })} - ${format(filters.endDate, 'dd/MM/yyyy', { locale: fr })}`
+                        : "Sélectionner les dates"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <div className="p-3 space-y-3">
+                      <div>
+                        <p className="text-sm font-medium mb-2">Date de début</p>
+                        <Calendar
+                          mode="single"
+                          selected={filters.startDate}
+                          onSelect={(date) => date && setFilters({ ...filters, startDate: date })}
+                          className="pointer-events-auto"
+                          locale={fr}
+                        />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium mb-2">Date de fin</p>
+                        <Calendar
+                          mode="single"
+                          selected={filters.endDate}
+                          onSelect={(date) => date && setFilters({ ...filters, endDate: date })}
+                          disabled={(date) => date < filters.startDate}
+                          className="pointer-events-auto"
+                          locale={fr}
+                        />
+                      </div>
+                      <Button 
+                        onClick={() => setDatePickerOpen(false)} 
+                        className="w-full"
+                      >
+                        Appliquer
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
 
             <div className="flex-1 min-w-[200px]">
               <label className="text-sm font-medium mb-2 block">Devise</label>
@@ -177,6 +256,10 @@ export const DashboardAnalytics = () => {
                 <Download className="h-4 w-4 mr-2" />
                 PDF
               </Button>
+              <Button onClick={handleExcelExport} variant="outline" size="sm">
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Excel
+              </Button>
               <Button onClick={handlePrint} variant="outline" size="sm">
                 <Printer className="h-4 w-4 mr-2" />
                 Imprimer
@@ -197,6 +280,12 @@ export const DashboardAnalytics = () => {
             <div className="text-2xl font-bold">
               ${kpis.totalRecettesUsd.toLocaleString('fr-FR')}
             </div>
+            <div className={cn("text-xs flex items-center gap-1 mt-1", 
+              comparisonKPIs.recettesUsdEvolution >= 0 ? "text-green-600" : "text-red-600"
+            )}>
+              {comparisonKPIs.recettesUsdEvolution >= 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+              {Math.abs(comparisonKPIs.recettesUsdEvolution).toFixed(1)}% {previousPeriodLabel}
+            </div>
           </CardContent>
         </Card>
 
@@ -208,6 +297,12 @@ export const DashboardAnalytics = () => {
           <CardContent>
             <div className="text-2xl font-bold">
               ${kpis.totalDepensesUsd.toLocaleString('fr-FR')}
+            </div>
+            <div className={cn("text-xs flex items-center gap-1 mt-1", 
+              comparisonKPIs.depensesUsdEvolution <= 0 ? "text-green-600" : "text-red-600"
+            )}>
+              {comparisonKPIs.depensesUsdEvolution >= 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+              {Math.abs(comparisonKPIs.depensesUsdEvolution).toFixed(1)}% {previousPeriodLabel}
             </div>
           </CardContent>
         </Card>
@@ -221,6 +316,12 @@ export const DashboardAnalytics = () => {
             <div className="text-2xl font-bold">
               {kpis.totalRecettesCdf.toLocaleString('fr-FR')} FC
             </div>
+            <div className={cn("text-xs flex items-center gap-1 mt-1", 
+              comparisonKPIs.recettesCdfEvolution >= 0 ? "text-green-600" : "text-red-600"
+            )}>
+              {comparisonKPIs.recettesCdfEvolution >= 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+              {Math.abs(comparisonKPIs.recettesCdfEvolution).toFixed(1)}% {previousPeriodLabel}
+            </div>
           </CardContent>
         </Card>
 
@@ -233,6 +334,12 @@ export const DashboardAnalytics = () => {
             <div className="text-2xl font-bold">
               {kpis.totalDepensesCdf.toLocaleString('fr-FR')} FC
             </div>
+            <div className={cn("text-xs flex items-center gap-1 mt-1", 
+              comparisonKPIs.depensesCdfEvolution <= 0 ? "text-green-600" : "text-red-600"
+            )}>
+              {comparisonKPIs.depensesCdfEvolution >= 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+              {Math.abs(comparisonKPIs.depensesCdfEvolution).toFixed(1)}% {previousPeriodLabel}
+            </div>
           </CardContent>
         </Card>
 
@@ -243,9 +350,12 @@ export const DashboardAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{kpis.totalTransactions}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {kpis.mostActiveCashier}
-            </p>
+            <div className={cn("text-xs flex items-center gap-1 mt-1", 
+              comparisonKPIs.transactionsEvolution >= 0 ? "text-green-600" : "text-red-600"
+            )}>
+              {comparisonKPIs.transactionsEvolution >= 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+              {Math.abs(comparisonKPIs.transactionsEvolution).toFixed(1)}% {previousPeriodLabel}
+            </div>
           </CardContent>
         </Card>
 
@@ -261,11 +371,24 @@ export const DashboardAnalytics = () => {
             <div className="text-sm font-bold">
               {kpis.totalGapCdf.toLocaleString('fr-FR')} FC
             </div>
+            <div className={cn("text-xs flex items-center gap-1 mt-1", 
+              comparisonKPIs.gapUsdEvolution <= 0 ? "text-green-600" : "text-red-600"
+            )}>
+              {comparisonKPIs.gapUsdEvolution >= 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+              {Math.abs(comparisonKPIs.gapUsdEvolution).toFixed(1)}% USD {previousPeriodLabel}
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Charts */}
+      <PeriodComparisonChart 
+        currentData={{ kpis, label: "Période actuelle" }}
+        comparisonKPIs={comparisonKPIs}
+        previousPeriodLabel={previousPeriodLabel}
+        currency={filters.currency}
+      />
+      
       <TrendChart data={dailyData} currency={filters.currency} />
       
       <div className="grid gap-6 lg:grid-cols-2">

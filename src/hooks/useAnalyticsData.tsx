@@ -43,6 +43,16 @@ export interface KPIs {
   totalGapCdf: number;
 }
 
+export interface ComparisonKPIs {
+  recettesUsdEvolution: number;
+  depensesUsdEvolution: number;
+  recettesCdfEvolution: number;
+  depensesCdfEvolution: number;
+  transactionsEvolution: number;
+  gapUsdEvolution: number;
+  gapCdfEvolution: number;
+}
+
 export const useAnalyticsData = (filters: AnalyticsFilters) => {
   const { user } = useAuth();
   const { isAdmin, hasRole } = useUserRole(user?.id);
@@ -61,11 +71,33 @@ export const useAnalyticsData = (filters: AnalyticsFilters) => {
     totalGapUsd: 0,
     totalGapCdf: 0,
   });
+  const [comparisonKPIs, setComparisonKPIs] = useState<ComparisonKPIs>({
+    recettesUsdEvolution: 0,
+    depensesUsdEvolution: 0,
+    recettesCdfEvolution: 0,
+    depensesCdfEvolution: 0,
+    transactionsEvolution: 0,
+    gapUsdEvolution: 0,
+    gapCdfEvolution: 0,
+  });
+  const [previousPeriodLabel, setPreviousPeriodLabel] = useState<string>('');
 
   useEffect(() => {
     if (!user) return;
     fetchAnalyticsData();
   }, [user, filters]);
+
+  const calculatePreviousPeriod = (start: Date, end: Date) => {
+    const duration = end.getTime() - start.getTime();
+    const prevEnd = new Date(start.getTime() - 1);
+    const prevStart = new Date(prevEnd.getTime() - duration);
+    return { prevStart, prevEnd };
+  };
+
+  const calculateEvolution = (current: number, previous: number): number => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return ((current - previous) / previous) * 100;
+  };
 
   const fetchAnalyticsData = async () => {
     setLoading(true);
@@ -225,6 +257,69 @@ export const useAnalyticsData = (filters: AnalyticsFilters) => {
         totalGapCdf,
       });
 
+      // Fetch comparison data
+      const { prevStart, prevEnd } = calculatePreviousPeriod(filters.startDate, filters.endDate);
+      setPreviousPeriodLabel(
+        `vs ${prevStart.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} - ${prevEnd.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}`
+      );
+
+      // Fetch previous period transactions
+      let prevTransactionsQuery = supabase
+        .from('ledger')
+        .select('*')
+        .eq('status', 'VALIDE')
+        .gte('created_at', prevStart.toISOString())
+        .lte('created_at', prevEnd.toISOString());
+
+      if (cashierIdsToFetch.length > 0) {
+        prevTransactionsQuery = prevTransactionsQuery.in('account_owner', cashierIdsToFetch);
+      }
+
+      const { data: prevTransactions } = await prevTransactionsQuery;
+
+      // Fetch previous period closures
+      let prevClosuresQuery = supabase
+        .from('closing_transfers')
+        .select('*')
+        .gte('closing_date', prevStart.toISOString().split('T')[0])
+        .lte('closing_date', prevEnd.toISOString().split('T')[0]);
+
+      if (cashierIdsToFetch.length > 0) {
+        prevClosuresQuery = prevClosuresQuery.in('cashier_id', cashierIdsToFetch);
+      }
+
+      const { data: prevClosures } = await prevClosuresQuery;
+
+      // Calculate previous period KPIs
+      let prevRecettesUsd = 0, prevDepensesUsd = 0, prevRecettesCdf = 0, prevDepensesCdf = 0;
+      let prevTransactionCount = 0, prevGapUsd = 0, prevGapCdf = 0;
+
+      prevTransactions?.forEach((tx: any) => {
+        prevTransactionCount++;
+        if (tx.entry_kind === 'RECETTE') {
+          if (tx.currency === 'USD') prevRecettesUsd += tx.amount;
+          else prevRecettesCdf += tx.amount;
+        } else if (tx.entry_kind === 'DEPENSE') {
+          if (tx.currency === 'USD') prevDepensesUsd += tx.amount;
+          else prevDepensesCdf += tx.amount;
+        }
+      });
+
+      prevClosures?.forEach((closure: any) => {
+        prevGapUsd += closure.gap_usd || 0;
+        prevGapCdf += closure.gap_cdf || 0;
+      });
+
+      setComparisonKPIs({
+        recettesUsdEvolution: calculateEvolution(totalRecettesUsd, prevRecettesUsd),
+        depensesUsdEvolution: calculateEvolution(totalDepensesUsd, prevDepensesUsd),
+        recettesCdfEvolution: calculateEvolution(totalRecettesCdf, prevRecettesCdf),
+        depensesCdfEvolution: calculateEvolution(totalDepensesCdf, prevDepensesCdf),
+        transactionsEvolution: calculateEvolution(totalTransactions, prevTransactionCount),
+        gapUsdEvolution: calculateEvolution(totalGapUsd, prevGapUsd),
+        gapCdfEvolution: calculateEvolution(totalGapCdf, prevGapCdf),
+      });
+
     } catch (error) {
       console.error('Error fetching analytics data:', error);
     } finally {
@@ -232,5 +327,5 @@ export const useAnalyticsData = (filters: AnalyticsFilters) => {
     }
   };
 
-  return { loading, cashierData, dailyData, kpis };
+  return { loading, cashierData, dailyData, kpis, comparisonKPIs, previousPeriodLabel };
 };
