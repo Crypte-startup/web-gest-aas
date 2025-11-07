@@ -97,6 +97,7 @@ const TransactionForm = ({ onSuccess, onCancel }: TransactionFormProps) => {
         client_name: data.client_name,
         motif: data.motif,
         created_by: user.id,
+        account_owner: user.id,
         // Le comptable et les caissiers créent des transactions directement validées
         status: (shouldAutoValidate ? 'VALIDE' : 'ENREGISTRE') as Database['public']['Enums']['entry_status'],
       };
