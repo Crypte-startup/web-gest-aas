@@ -10,6 +10,7 @@ import {
   LogOut,
   Building2,
   Clock,
+  Activity,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -40,6 +41,7 @@ const navigationItems = [
   { title: 'Ressources Humaines', url: '/dashboard/rh', icon: UserCircle, roles: ['admin', 'resp_rh', 'prepose_rh'] },
   { title: 'Commercial', url: '/dashboard/commercial', icon: ShoppingCart, roles: ['admin', 'resp_comm', 'prepose_comm'] },
   { title: 'Utilisateurs', url: '/dashboard/users', icon: Settings, roles: ['admin'] },
+  { title: 'Journaux', url: '/dashboard/logs', icon: Activity, roles: ['admin'] },
 ];
 
 export function AppSidebar() {

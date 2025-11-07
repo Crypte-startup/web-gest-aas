@@ -15,6 +15,7 @@ import UsersManagement from "./pages/modules/Users";
 import Session from "./pages/modules/Session";
 import SupervisorSession from "./pages/modules/SupervisorSession";
 import ClosureReports from "./pages/modules/ClosureReports";
+import Logs from "./pages/modules/Logs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="rh" element={<RH />} />
             <Route path="commercial" element={<Commercial />} />
             <Route path="users" element={<UsersManagement />} />
+            <Route path="logs" element={<Logs />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

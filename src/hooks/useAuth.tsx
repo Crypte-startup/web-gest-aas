@@ -51,10 +51,29 @@ export const useAuth = () => {
       email,
       password,
     });
+    
+    if (!error) {
+      // Log successful login
+      await supabase.rpc('log_activity', {
+        p_action_type: 'LOGIN',
+        p_table_name: null,
+        p_record_id: null,
+        p_details: null
+      });
+    }
+    
     return { error };
   };
 
   const signOut = async () => {
+    // Log logout before signing out
+    await supabase.rpc('log_activity', {
+      p_action_type: 'LOGOUT',
+      p_table_name: null,
+      p_record_id: null,
+      p_details: null
+    });
+    
     await supabase.auth.signOut();
     navigate('/auth');
   };
