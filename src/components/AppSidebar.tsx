@@ -11,6 +11,8 @@ import {
   Building2,
   Clock,
   Activity,
+  History,
+  TrendingDown,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -36,6 +38,8 @@ const navigationItems = [
   { title: 'Session', url: '/dashboard/session', icon: Clock, roles: ['caissier', 'caissier1', 'caissier2', 'caissier3', 'caissier4', 'caissier5'] },
   { title: 'Sessions', url: '/dashboard/supervisor-session', icon: Users, roles: ['admin', 'resp_compta'] },
   { title: 'Rapports de Clôture', url: '/dashboard/closure-reports', icon: Building2, roles: ['admin', 'resp_compta'] },
+  { title: 'Historique Attributions', url: '/dashboard/attributions-history', icon: History, roles: ['admin', 'resp_compta'] },
+  { title: 'Rapport Écarts', url: '/dashboard/closure-gaps-report', icon: TrendingDown, roles: ['admin', 'resp_compta'] },
   { title: 'Logistique', url: '/dashboard/logistique', icon: Package, roles: ['admin', 'resp_log', 'prepose_log'] },
   { title: 'Clientèle', url: '/dashboard/clientele', icon: Users, roles: ['admin', 'resp_clientele', 'prepose_clientele'] },
   { title: 'Ressources Humaines', url: '/dashboard/rh', icon: UserCircle, roles: ['admin', 'resp_rh', 'prepose_rh'] },
