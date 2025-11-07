@@ -60,56 +60,48 @@ const Session = () => {
     try {
       setIsLoading(true);
       
-      // Récupérer les soldes d'ouverture
-      const { data: startingBalances, error: startingError } = await supabase
-        .from('starting_balances')
-        .select('*')
-        .eq('user_id', user.id);
-
-      if (startingError) throw startingError;
-
-      let startingUsd = 0;
-      let startingCdf = 0;
-
-      startingBalances?.forEach((sb) => {
-        if (sb.currency === 'USD') {
-          startingUsd += Number(sb.amount);
-        } else if (sb.currency === 'CDF') {
-          startingCdf += Number(sb.amount);
-        }
-      });
-
-      setStartingBalance({ usd: startingUsd, cdf: startingCdf });
-      
-      // Récupérer toutes les transactions validées du caissier
+      // Récupérer TOUTES les transactions VALIDES du caissier
       const { data: transactions, error } = await supabase
         .from('ledger')
         .select('*')
-        .or(`created_by.eq.${user.id},account_owner.eq.${user.id}`)
+        .eq('account_owner', user.id)
         .eq('status', 'VALIDE');
 
       if (error) throw error;
 
-      let usdBalance = startingUsd;
-      let cdfBalance = startingCdf;
+      let usdBalance = 0;
+      let cdfBalance = 0;
+      let startingUsd = 0;
+      let startingCdf = 0;
 
       transactions?.forEach((t) => {
+        const amount = Number(t.amount);
+        
+        // Calculer le solde total
         if (t.entry_kind === 'RECETTE') {
           if (t.currency === 'USD') {
-            usdBalance += Number(t.amount);
+            usdBalance += amount;
+            // Si c'est un solde d'ouverture, le compter séparément
+            if (t.entry_id?.startsWith('OPENING-') && t.motif?.includes('ouverture')) {
+              startingUsd += amount;
+            }
           } else {
-            cdfBalance += Number(t.amount);
+            cdfBalance += amount;
+            if (t.entry_id?.startsWith('OPENING-') && t.motif?.includes('ouverture')) {
+              startingCdf += amount;
+            }
           }
         } else if (t.entry_kind === 'DEPENSE') {
           if (t.currency === 'USD') {
-            usdBalance -= Number(t.amount);
+            usdBalance -= amount;
           } else {
-            cdfBalance -= Number(t.amount);
+            cdfBalance -= amount;
           }
         }
       });
 
       setBalance({ usd: usdBalance, cdf: cdfBalance });
+      setStartingBalance({ usd: startingUsd, cdf: startingCdf });
     } catch (error: any) {
       toast({
         variant: 'destructive',

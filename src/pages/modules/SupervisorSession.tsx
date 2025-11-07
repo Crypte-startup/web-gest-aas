@@ -212,19 +212,26 @@ const SupervisorSession = () => {
       const selectedCashier = cashiers.find(c => c.user_id === data.caissier_id);
       const transferId = `OPENING-${Date.now()}`;
 
-      // Upsert le solde d'ouverture (mettre à jour s'il existe, sinon créer)
-      const { error: balanceError } = await supabase
-        .from('starting_balances')
-        .upsert({
-          user_id: data.caissier_id,
-          currency: data.currency,
-          amount: data.amount,
-          account: selectedCashier?.role || 'caissier',
-        }, {
-          onConflict: 'user_id,currency,account'
-        });
+      // Vérifier qu'aucun solde d'ouverture n'existe déjà aujourd'hui pour ce caissier/devise
+      const today = new Date().toISOString().split('T')[0];
+      const { data: todayOpening } = await supabase
+        .from('ledger')
+        .select('id')
+        .eq('account_owner', data.caissier_id)
+        .eq('currency', data.currency)
+        .like('entry_id', 'OPENING-%')
+        .gte('created_at', today)
+        .maybeSingle();
 
-      if (balanceError) throw balanceError;
+      if (todayOpening) {
+        toast({
+          variant: 'destructive',
+          title: 'Erreur',
+          description: `Ce caissier a déjà reçu un solde d'ouverture en ${data.currency} aujourd'hui`,
+        });
+        setIsSubmitting(false);
+        return;
+      }
 
       // Transaction 1: Dépense pour resp_compta (diminue son solde)
       const { error: expenseError } = await supabase
@@ -253,7 +260,7 @@ const SupervisorSession = () => {
           account_owner: data.caissier_id,
           created_by: user.id,
           motif: 'Solde d\'ouverture attribué par superviseur',
-          status: 'APPROUVE'
+          status: 'VALIDE'
         });
 
       if (incomeError) throw incomeError;
