@@ -24,9 +24,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, FileText, AlertTriangle, Eye, Calendar, Trash2 } from 'lucide-react';
+import { Loader2, FileText, AlertTriangle, Eye, Calendar, Trash2, FileSpreadsheet, FileDown } from 'lucide-react';
 import { ClosureDetailDialog } from '@/components/comptabilite/ClosureDetailDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { exportClosuresToExcel, exportClosuresToPDF } from '@/lib/excelExport';
 
 interface ClosureTransfer {
   id: string;
@@ -249,11 +250,35 @@ const ClosureReports = () => {
         </Card>
       </div>
 
-      {/* Filtres */}
+      {/* Filtres et Export */}
       <Card>
         <CardHeader>
-          <CardTitle>Filtres</CardTitle>
-          <CardDescription>Filtrez les clôtures selon vos critères</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Filtres</CardTitle>
+              <CardDescription>Filtrez les clôtures selon vos critères</CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => exportClosuresToExcel(closures)}
+                disabled={closures.length === 0}
+              >
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Excel
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => exportClosuresToPDF(closures)}
+                disabled={closures.length === 0}
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                PDF
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-4">

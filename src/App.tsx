@@ -17,6 +17,7 @@ import SupervisorSession from "./pages/modules/SupervisorSession";
 import ClosureReports from "./pages/modules/ClosureReports";
 import AttributionsHistory from "./pages/modules/AttributionsHistory";
 import ClosureGapsReport from "./pages/modules/ClosureGapsReport";
+import Backups from "./pages/modules/Backups";
 import Logs from "./pages/modules/Logs";
 import Settings from "./pages/modules/Settings";
 import NotFound from "./pages/NotFound";
@@ -40,6 +41,7 @@ const App = () => (
           <Route path="closure-reports" element={<ClosureReports />} />
           <Route path="attributions-history" element={<AttributionsHistory />} />
           <Route path="closure-gaps-report" element={<ClosureGapsReport />} />
+          <Route path="backups" element={<Backups />} />
             <Route path="logistique" element={<Logistique />} />
             <Route path="clientele" element={<Clientele />} />
             <Route path="rh" element={<RH />} />
