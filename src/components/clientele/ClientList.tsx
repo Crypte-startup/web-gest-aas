@@ -90,96 +90,348 @@ const handlePrintOne = (client: any, settings: any) => {
       <head>
         <title>Fiche Client - ${client.name}</title>
         <style>
-          body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
-          .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
-          .logo { width: 120px; height: auto; }
-          .company-info { text-align: right; font-size: 12px; line-height: 1.6; }
-          .company-info strong { display: block; margin-bottom: 5px; }
-          .document-title { text-align: center; margin: 30px 0; font-size: 20px; font-weight: bold; color: #333; border: 2px solid #333; padding: 10px; }
-          .client-photo-section { text-align: center; margin: 20px 0; }
-          .client-photo { width: 150px; height: 150px; border-radius: 8px; object-fit: cover; border: 2px solid #333; }
-          .info-section { margin: 20px 0; }
-          .info-row { display: flex; padding: 10px 0; border-bottom: 1px solid #eee; }
-          .info-label { font-weight: bold; width: 200px; color: #555; }
-          .info-value { flex: 1; }
-          .print-date { text-align: right; margin-bottom: 10px; color: #666; font-size: 12px; }
-          .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #333; text-align: center; font-size: 11px; line-height: 1.5; }
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+          
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          
+          body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            padding: 40px; 
+            max-width: 900px; 
+            margin: 0 auto;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+          }
+          
+          .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+          }
+          
+          .header-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+          }
+          
+          .header-banner::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 300px;
+            height: 300px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+          }
+          
+          .header-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          
+          .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+          }
+          
+          .logo { 
+            width: 100px; 
+            height: auto;
+            background: white;
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+          }
+          
+          .company-name {
+            font-size: 24px;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+          }
+          
+          .company-info { 
+            text-align: right;
+            font-size: 11px;
+            line-height: 1.8;
+            opacity: 0.95;
+          }
+          
+          .company-info strong { 
+            display: block;
+            font-weight: 500;
+          }
+          
+          .document-header {
+            padding: 30px;
+            background: linear-gradient(to right, #f8f9fa, #ffffff);
+            border-bottom: 3px solid #667eea;
+          }
+          
+          .document-title { 
+            text-align: center;
+            font-size: 32px;
+            font-weight: 700;
+            color: #2d3748;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+          }
+          
+          .print-date { 
+            text-align: center;
+            color: #718096;
+            font-size: 13px;
+            font-weight: 500;
+          }
+          
+          .content-wrapper {
+            padding: 40px;
+          }
+          
+          .client-photo-section { 
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+          }
+          
+          .photo-frame {
+            display: inline-block;
+            position: relative;
+            padding: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+          }
+          
+          .client-photo { 
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 6px solid white;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+          }
+          
+          .info-sections {
+            display: grid;
+            gap: 30px;
+          }
+          
+          .info-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+          }
+          
+          .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          }
+          
+          .section-icon {
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 700;
+          }
+          
+          .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+          }
+          
+          .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+          }
+          
+          .info-label { 
+            font-weight: 600;
+            font-size: 12px;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          
+          .info-value { 
+            font-size: 15px;
+            color: #2d3748;
+            font-weight: 500;
+            padding: 8px 12px;
+            background: white;
+            border-radius: 6px;
+            border-left: 3px solid #667eea;
+          }
+          
+          .footer { 
+            margin-top: 40px;
+            padding: 25px;
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            color: white;
+            text-align: center;
+            font-size: 12px;
+            line-height: 1.8;
+          }
+          
+          .footer strong {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 5px;
+            color: #a0aec0;
+          }
+          
           @media print {
+            body { 
+              background: white;
+              padding: 0;
+            }
             button { display: none; }
+            .container {
+              box-shadow: none;
+              border-radius: 0;
+            }
           }
         </style>
       </head>
       <body>
-        <div class="print-date">Date d'impression: ${new Date().toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-        <div class="header">
-          ${settings?.logo_url ? `<img src="${settings.logo_url}" alt="Logo" class="logo" />` : `<img src="/logo.png" alt="Logo" class="logo" />`}
-          <div class="company-info">
-            <strong>RCCM : ${settings?.rccm || 'CD/LSI/RCCM/24-B-745'}</strong>
-            <strong>ID.NAT : ${settings?.id_nat || '05-H4901-N70222J'}</strong>
-            <strong>NIF : ${settings?.nif || 'A2434893E'}</strong>
-            <strong>TEL : ${settings?.phone || '+243 82 569 21 21'}</strong>
-            <strong>MAIL : ${settings?.email || 'info@amarachamsarl.com'}</strong>
+        <div class="container">
+          <div class="header-banner">
+            <div class="header-content">
+              <div class="logo-section">
+                ${settings?.logo_url ? `<img src="${settings.logo_url}" alt="Logo" class="logo" />` : `<img src="/logo.png" alt="Logo" class="logo" />`}
+                <div class="company-name">${settings?.company_name || 'AMARA CHAM SARL'}</div>
+              </div>
+              <div class="company-info">
+                <strong>RCCM: ${settings?.rccm || 'CD/LSI/RCCM/24-B-745'}</strong>
+                <strong>ID.NAT: ${settings?.id_nat || '05-H4901-N70222J'}</strong>
+                <strong>NIF: ${settings?.nif || 'A2434893E'}</strong>
+                <strong>TEL: ${settings?.phone || '+243 82 569 21 21'}</strong>
+                <strong>MAIL: ${settings?.email || 'info@amarachamsarl.com'}</strong>
+              </div>
+            </div>
+          </div>
+          
+          <div class="document-header">
+            <div class="document-title">Fiche Client</div>
+            <div class="print-date">Imprimé le ${new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+          </div>
+          
+          <div class="content-wrapper">
+            ${client.photo_url ? `
+            <div class="client-photo-section">
+              <div class="photo-frame">
+                <img src="${client.photo_url}" alt="Photo ${client.name}" class="client-photo" />
+              </div>
+            </div>
+             ` : ''}
+            <div class="info-sections">
+              <div class="info-section">
+                <div class="section-title">
+                  <span class="section-icon">👤</span>
+                  Informations Personnelles
+                </div>
+                <div class="info-grid">
+                  <div class="info-item">
+                    <span class="info-label">Nom</span>
+                    <span class="info-value">${client.name}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Postnom</span>
+                    <span class="info-value">${client.postnom || '-'}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Prénom</span>
+                    <span class="info-value">${client.prenom || '-'}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Date de naissance</span>
+                    <span class="info-value">${client.date_naissance ? format(new Date(client.date_naissance), 'dd/MM/yyyy', { locale: fr }) : '-'}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="info-section">
+                <div class="section-title">
+                  <span class="section-icon">📞</span>
+                  Coordonnées
+                </div>
+                <div class="info-grid">
+                  <div class="info-item">
+                    <span class="info-label">Téléphone</span>
+                    <span class="info-value">${client.phone || '-'}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Email</span>
+                    <span class="info-value">${client.email || '-'}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Domicile</span>
+                    <span class="info-value">${client.domicile || '-'}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="info-section">
+                <div class="section-title">
+                  <span class="section-icon">🎓</span>
+                  Informations Scolaires
+                </div>
+                <div class="info-grid">
+                  <div class="info-item">
+                    <span class="info-label">École</span>
+                    <span class="info-value">${client.ecole || '-'}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Classe</span>
+                    <span class="info-value">${client.classe || '-'}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Adresse école</span>
+                    <span class="info-value">${client.adresse_ecole || '-'}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Trajet</span>
+                    <span class="info-value">${client.trajet || '-'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+           
+          <div class="footer">
+            <strong>ADRESSE</strong>
+            ${settings?.address || '1144 avenue maître mawanga'}<br/>
+            ${settings?.city || 'Quartier Ile du golf, Commune de Likasi'}, ${settings?.province || 'Haut Katanga'}<br/>
+            ${settings?.country || 'République Démocratique du Congo'}
           </div>
         </div>
-        <div class="document-title">FICHE CLIENT</div>
-        ${client.photo_url ? `
-        <div class="client-photo-section">
-          <img src="${client.photo_url}" alt="Photo ${client.name}" class="client-photo" />
-        </div>
-        ` : ''}
-        <div class="info-section">
-          <div class="info-row">
-            <span class="info-label">Nom:</span>
-            <span class="info-value">${client.name}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Postnom:</span>
-            <span class="info-value">${client.postnom || '-'}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Prénom:</span>
-            <span class="info-value">${client.prenom || '-'}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Date de naissance:</span>
-            <span class="info-value">${client.date_naissance ? format(new Date(client.date_naissance), 'dd/MM/yyyy', { locale: fr }) : '-'}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Téléphone:</span>
-            <span class="info-value">${client.phone || '-'}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Email:</span>
-            <span class="info-value">${client.email || '-'}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">École:</span>
-            <span class="info-value">${client.ecole || '-'}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Classe:</span>
-            <span class="info-value">${client.classe || '-'}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Domicile:</span>
-            <span class="info-value">${client.domicile || '-'}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Adresse école:</span>
-            <span class="info-value">${client.adresse_ecole || '-'}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Trajet:</span>
-            <span class="info-value">${client.trajet || '-'}</span>
-          </div>
-        </div>
-        <div class="footer">
-          <strong>ADRESSE :</strong> ${settings?.address || '1144 avenue maître mawanga'}<br/>
-          ${settings?.city || 'Quartier Ile du golf, Commune de Likasi'}, ${settings?.province || 'Haut Katanga'},<br/>
-          ${settings?.country || 'République Démocratique du Congo'}
-        </div>
-        <div style="margin-top: 30px; text-align: center;">
-          <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer; background: #333; color: white; border: none; border-radius: 5px;">Imprimer</button>
+        
+        <div style="margin: 30px; text-align: center;">
+          <button onclick="window.print()" style="padding: 15px 40px; font-size: 16px; cursor: pointer; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); font-weight: 600; transition: transform 0.2s;">Imprimer la fiche</button>
         </div>
       </body>
     </html>
