@@ -18,6 +18,7 @@ import ClosureReports from "./pages/modules/ClosureReports";
 import AttributionsHistory from "./pages/modules/AttributionsHistory";
 import ClosureGapsReport from "./pages/modules/ClosureGapsReport";
 import Logs from "./pages/modules/Logs";
+import Settings from "./pages/modules/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="commercial" element={<Commercial />} />
             <Route path="users" element={<UsersManagement />} />
             <Route path="logs" element={<Logs />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

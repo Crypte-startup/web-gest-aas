@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { useCompanySettings } from '@/hooks/useCompanySettings';
 import { Loader2, Printer, Trash2, FileText, RotateCcw } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
@@ -52,6 +53,7 @@ const CashierOperations = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { isAdmin, hasRole } = useUserRole(user?.id);
+  const { settings } = useCompanySettings();
   const canManage = isAdmin || hasRole('resp_compta');
 
   const fetchCashierOperations = async () => {

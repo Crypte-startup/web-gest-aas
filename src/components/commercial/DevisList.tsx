@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Edit, Trash2, Printer, FileDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useCompanySettings } from '@/hooks/useCompanySettings';
 import DevisForm from './DevisForm';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/hooks/useAuth';
@@ -35,6 +36,7 @@ const DevisList = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { isAdmin } = useUserRole(user?.id);
+  const { settings } = useCompanySettings();
 
   const fetchDevis = async () => {
     const { data, error } = await supabase
@@ -154,13 +156,13 @@ const DevisList = () => {
         </head>
         <body>
           <div class="header">
-            <img src="/logo.png" alt="Logo" class="logo" />
+            ${settings?.logo_url ? `<img src="${settings.logo_url}" alt="Logo" class="logo" />` : `<img src="/logo.png" alt="Logo" class="logo" />`}
             <div class="company-info">
-              <strong>RCCM : CD/LSI/RCCM/24-B-745</strong>
-              <strong>ID.NAT : 05-H4901-N70222J</strong>
-              <strong>NIF : A2434893E</strong>
-              <strong>TEL : +243 82 569 21 21</strong>
-              <strong>MAIL : info@amarachamsarl.com</strong>
+              <strong>RCCM : ${settings?.rccm || 'CD/LSI/RCCM/24-B-745'}</strong>
+              <strong>ID.NAT : ${settings?.id_nat || '05-H4901-N70222J'}</strong>
+              <strong>NIF : ${settings?.nif || 'A2434893E'}</strong>
+              <strong>TEL : ${settings?.phone || '+243 82 569 21 21'}</strong>
+              <strong>MAIL : ${settings?.email || 'info@amarachamsarl.com'}</strong>
             </div>
           </div>
           <h1>DEVIS</h1>
@@ -193,9 +195,9 @@ const DevisList = () => {
           </div>
           
           <div class="footer">
-            <strong>ADRESSE :</strong> 1144 avenue maître mawanga<br/>
-            Quartier Ile du golf, Commune de Likasi, Haut Katanga,<br/>
-            République Démocratique du Congo
+            <strong>ADRESSE :</strong> ${settings?.address || '1144 avenue maître mawanga'}<br/>
+            ${settings?.city || 'Quartier Ile du golf, Commune de Likasi'}, ${settings?.province || 'Haut Katanga'},<br/>
+            ${settings?.country || 'République Démocratique du Congo'}
           </div>
           
           <button onclick="window.print()">Imprimer</button>

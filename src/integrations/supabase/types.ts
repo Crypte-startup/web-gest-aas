@@ -230,6 +230,57 @@ export type Database = {
         }
         Relationships: []
       }
+      company_settings: {
+        Row: {
+          address: string
+          city: string
+          company_name: string
+          country: string
+          created_at: string
+          email: string
+          id: string
+          id_nat: string
+          logo_url: string | null
+          nif: string
+          phone: string
+          province: string
+          rccm: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string
+          city?: string
+          company_name?: string
+          country?: string
+          created_at?: string
+          email?: string
+          id?: string
+          id_nat?: string
+          logo_url?: string | null
+          nif?: string
+          phone?: string
+          province?: string
+          rccm?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          city?: string
+          company_name?: string
+          country?: string
+          created_at?: string
+          email?: string
+          id?: string
+          id_nat?: string
+          logo_url?: string | null
+          nif?: string
+          phone?: string
+          province?: string
+          rccm?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       devis: {
         Row: {
           client_id: string | null

@@ -44,7 +44,8 @@ const navigationItems = [
   { title: 'Clientèle', url: '/dashboard/clientele', icon: Users, roles: ['admin', 'resp_clientele', 'prepose_clientele'] },
   { title: 'Ressources Humaines', url: '/dashboard/rh', icon: UserCircle, roles: ['admin', 'resp_rh', 'prepose_rh'] },
   { title: 'Commercial', url: '/dashboard/commercial', icon: ShoppingCart, roles: ['admin', 'resp_comm', 'prepose_comm'] },
-  { title: 'Utilisateurs', url: '/dashboard/users', icon: Settings, roles: ['admin'] },
+  { title: 'Paramètres', url: '/dashboard/settings', icon: Settings, roles: ['admin'] },
+  { title: 'Utilisateurs', url: '/dashboard/users', icon: Users, roles: ['admin'] },
   { title: 'Journaux', url: '/dashboard/logs', icon: Activity, roles: ['admin'] },
 ];
 

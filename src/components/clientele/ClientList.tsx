@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { UserPlus, Pencil, Trash2, Loader2, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { useCompanySettings } from '@/hooks/useCompanySettings';
 
 interface ClientListProps {
   clients: any[];
@@ -12,7 +13,7 @@ interface ClientListProps {
   onAdd: () => void;
 }
 
-const handlePrintAll = (clients: any[]) => {
+const handlePrintAll = (clients: any[], settings: any) => {
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
 
@@ -79,7 +80,7 @@ const handlePrintAll = (clients: any[]) => {
   printWindow.document.close();
 };
 
-const handlePrintOne = (client: any) => {
+const handlePrintOne = (client: any, settings: any) => {
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
 
@@ -111,13 +112,13 @@ const handlePrintOne = (client: any) => {
       <body>
         <div class="print-date">Date d'impression: ${new Date().toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
         <div class="header">
-          <img src="/logo.png" alt="Logo" class="logo" />
+          ${settings?.logo_url ? `<img src="${settings.logo_url}" alt="Logo" class="logo" />` : `<img src="/logo.png" alt="Logo" class="logo" />`}
           <div class="company-info">
-            <strong>RCCM : CD/LSI/RCCM/24-B-745</strong>
-            <strong>ID.NAT : 05-H4901-N70222J</strong>
-            <strong>NIF : A2434893E</strong>
-            <strong>TEL : +243 82 569 21 21</strong>
-            <strong>MAIL : info@amarachamsarl.com</strong>
+            <strong>RCCM : ${settings?.rccm || 'CD/LSI/RCCM/24-B-745'}</strong>
+            <strong>ID.NAT : ${settings?.id_nat || '05-H4901-N70222J'}</strong>
+            <strong>NIF : ${settings?.nif || 'A2434893E'}</strong>
+            <strong>TEL : ${settings?.phone || '+243 82 569 21 21'}</strong>
+            <strong>MAIL : ${settings?.email || 'info@amarachamsarl.com'}</strong>
           </div>
         </div>
         <div class="document-title">FICHE CLIENT</div>
@@ -173,9 +174,9 @@ const handlePrintOne = (client: any) => {
           </div>
         </div>
         <div class="footer">
-          <strong>ADRESSE :</strong> 1144 avenue maître mawanga<br/>
-          Quartier Ile du golf, Commune de Likasi, Haut Katanga,<br/>
-          République Démocratique du Congo
+          <strong>ADRESSE :</strong> ${settings?.address || '1144 avenue maître mawanga'}<br/>
+          ${settings?.city || 'Quartier Ile du golf, Commune de Likasi'}, ${settings?.province || 'Haut Katanga'},<br/>
+          ${settings?.country || 'République Démocratique du Congo'}
         </div>
         <div style="margin-top: 30px; text-align: center;">
           <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer; background: #333; color: white; border: none; border-radius: 5px;">Imprimer</button>
@@ -187,6 +188,8 @@ const handlePrintOne = (client: any) => {
 };
 
 const ClientList = ({ clients, isLoading, onEdit, onDelete, onAdd }: ClientListProps) => {
+  const { settings } = useCompanySettings();
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -210,7 +213,7 @@ const ClientList = ({ clients, isLoading, onEdit, onDelete, onAdd }: ClientListP
   return (
     <div className="space-y-4">
       <div className="flex justify-between">
-        <Button onClick={() => handlePrintAll(clients)} disabled={clients.length === 0}>
+        <Button onClick={() => handlePrintAll(clients, settings)} disabled={clients.length === 0}>
           <Printer className="w-4 h-4 mr-2" />
           Imprimer la liste
         </Button>
@@ -270,7 +273,7 @@ const ClientList = ({ clients, isLoading, onEdit, onDelete, onAdd }: ClientListP
                   <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handlePrintOne(client)}
+                      onClick={() => handlePrintOne(client, settings)}
                       title="Imprimer ce client"
                     >
                       <Printer className="h-4 w-4" />
