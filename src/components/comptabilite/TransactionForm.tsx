@@ -15,7 +15,15 @@ import type { Database } from '@/integrations/supabase/types';
 const transactionSchema = z.object({
   type: z.enum(['RECETTE', 'DEPENSE']),
   currency: z.enum(['USD', 'CDF']),
-  amount: z.string().min(1, 'Le montant est requis'),
+  amount: z.string()
+    .min(1, 'Le montant est requis')
+    .refine(
+      (val) => {
+        const num = parseFloat(val);
+        return !isNaN(num) && num > 0;
+      },
+      { message: "Le montant doit être supérieur à zéro" }
+    ),
   client_name: z.string().min(1, 'Le nom du client est requis'),
   motif: z.string().min(1, 'Le motif est requis').max(500),
 });

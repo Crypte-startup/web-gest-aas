@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Printer, Trash2, FileText, CalendarIcon } from 'lucide-react';
+import { Loader2, Printer, Trash2, FileText, CalendarIcon, Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
@@ -45,6 +46,9 @@ const JournalList = () => {
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [currencyFilter, setCurrencyFilter] = useState<string>('all');
   const { toast } = useToast();
   const { user } = useAuth();
   const { isAdmin, hasRole } = useUserRole(user?.id);
@@ -98,7 +102,7 @@ const JournalList = () => {
 
   useEffect(() => {
     filterTransactionsByPeriod();
-  }, [transactions, periodFilter, startDate, endDate]);
+  }, [transactions, periodFilter, startDate, endDate, searchQuery, typeFilter, currencyFilter]);
 
   const filterTransactionsByPeriod = () => {
     let filtered = transactions;
@@ -156,6 +160,26 @@ const JournalList = () => {
         }
         return true;
       });
+    }
+
+    // Filtrer par recherche
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((t) => 
+        t.client_name?.toLowerCase().includes(query) ||
+        t.entry_id?.toLowerCase().includes(query) ||
+        t.motif?.toLowerCase().includes(query)
+      );
+    }
+
+    // Filtrer par type
+    if (typeFilter !== 'all') {
+      filtered = filtered.filter((t) => t.entry_kind === typeFilter);
+    }
+
+    // Filtrer par devise
+    if (currencyFilter !== 'all') {
+      filtered = filtered.filter((t) => t.currency === currencyFilter);
     }
 
     setFilteredTransactions(filtered);
@@ -370,28 +394,61 @@ const JournalList = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-4 items-end">
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium">Période</label>
-          <Select value={periodFilter} onValueChange={(value) => {
-            setPeriodFilter(value);
-            if (value !== 'custom') {
-              resetCustomDates();
-            }
-          }}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Sélectionner la période" />
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher par client, N° écriture, motif..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Toutes les périodes</SelectItem>
-              <SelectItem value="daily">Journalier</SelectItem>
-              <SelectItem value="weekly">Hebdomadaire</SelectItem>
-              <SelectItem value="monthly">Mensuel</SelectItem>
-              <SelectItem value="yearly">Annuel</SelectItem>
-              <SelectItem value="custom">Personnalisé</SelectItem>
+              <SelectItem value="all">Tous types</SelectItem>
+              <SelectItem value="RECETTE">Recette</SelectItem>
+              <SelectItem value="DEPENSE">Dépense</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={currencyFilter} onValueChange={setCurrencyFilter}>
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="Devise" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes</SelectItem>
+              <SelectItem value="USD">USD</SelectItem>
+              <SelectItem value="CDF">CDF</SelectItem>
             </SelectContent>
           </Select>
         </div>
+        
+        <div className="flex flex-wrap gap-4 items-end">
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium">Période</label>
+            <Select value={periodFilter} onValueChange={(value) => {
+              setPeriodFilter(value);
+              if (value !== 'custom') {
+                resetCustomDates();
+              }
+            }}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Sélectionner la période" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes les périodes</SelectItem>
+                <SelectItem value="daily">Journalier</SelectItem>
+                <SelectItem value="weekly">Hebdomadaire</SelectItem>
+                <SelectItem value="monthly">Mensuel</SelectItem>
+                <SelectItem value="yearly">Annuel</SelectItem>
+                <SelectItem value="custom">Personnalisé</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
         {periodFilter === 'custom' && (
           <>
@@ -457,14 +514,15 @@ const JournalList = () => {
           </>
         )}
 
-        <div className="ml-auto flex gap-2 self-end">
-          <div className="text-sm text-muted-foreground self-center">
-            {filteredTransactions.length} transaction(s)
+          <div className="ml-auto flex gap-2 self-end">
+            <div className="text-sm text-muted-foreground self-center">
+              {filteredTransactions.length} transaction(s)
+            </div>
+            <Button onClick={handlePrint} variant="outline">
+              <Printer className="h-4 w-4 mr-2" />
+              Imprimer
+            </Button>
           </div>
-          <Button onClick={handlePrint} variant="outline">
-            <Printer className="h-4 w-4 mr-2" />
-            Imprimer
-          </Button>
         </div>
       </div>
       <div className="rounded-md border">
