@@ -90,16 +90,19 @@ const handlePrintOne = (client: any) => {
         <title>Fiche Client - ${client.name}</title>
         <style>
           body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
-          .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #333; padding-bottom: 20px; }
-          .header h1 { margin: 0; color: #333; font-size: 24px; }
-          .header p { margin: 5px 0; color: #666; font-size: 14px; }
+          .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+          .logo { width: 120px; height: auto; }
+          .company-info { text-align: right; font-size: 12px; line-height: 1.6; }
+          .company-info strong { display: block; margin-bottom: 5px; }
           .document-title { text-align: center; margin: 30px 0; font-size: 20px; font-weight: bold; color: #333; border: 2px solid #333; padding: 10px; }
+          .client-photo-section { text-align: center; margin: 20px 0; }
+          .client-photo { width: 150px; height: 150px; border-radius: 8px; object-fit: cover; border: 2px solid #333; }
           .info-section { margin: 20px 0; }
           .info-row { display: flex; padding: 10px 0; border-bottom: 1px solid #eee; }
           .info-label { font-weight: bold; width: 200px; color: #555; }
           .info-value { flex: 1; }
           .print-date { text-align: right; margin-bottom: 10px; color: #666; font-size: 12px; }
-          .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #333; text-align: center; color: #666; font-size: 12px; }
+          .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #333; text-align: center; font-size: 11px; line-height: 1.5; }
           @media print {
             button { display: none; }
           }
@@ -108,11 +111,21 @@ const handlePrintOne = (client: any) => {
       <body>
         <div class="print-date">Date d'impression: ${new Date().toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
         <div class="header">
-          <h1>VOTRE ENTREPRISE</h1>
-          <p>Adresse: Avenue de la Liberté, Kinshasa</p>
-          <p>Téléphone: +243 XX XXX XXXX | Email: contact@entreprise.cd</p>
+          <img src="/logo.png" alt="Logo" class="logo" />
+          <div class="company-info">
+            <strong>RCCM : CD/LSI/RCCM/24-B-745</strong>
+            <strong>ID.NAT : 05-H4901-N70222J</strong>
+            <strong>NIF : A2434893E</strong>
+            <strong>TEL : +243 82 569 21 21</strong>
+            <strong>MAIL : info@amarachamsarl.com</strong>
+          </div>
         </div>
         <div class="document-title">FICHE CLIENT</div>
+        ${client.photo_url ? `
+        <div class="client-photo-section">
+          <img src="${client.photo_url}" alt="Photo ${client.name}" class="client-photo" />
+        </div>
+        ` : ''}
         <div class="info-section">
           <div class="info-row">
             <span class="info-label">Nom:</span>
@@ -160,7 +173,9 @@ const handlePrintOne = (client: any) => {
           </div>
         </div>
         <div class="footer">
-          <p>Document généré automatiquement - Service Clientèle</p>
+          <strong>ADRESSE :</strong> 1144 avenue maître mawanga<br/>
+          Quartier Ile du golf, Commune de Likasi, Haut Katanga,<br/>
+          République Démocratique du Congo
         </div>
         <div style="margin-top: 30px; text-align: center;">
           <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer; background: #333; color: white; border: none; border-radius: 5px;">Imprimer</button>
