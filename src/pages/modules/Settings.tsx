@@ -7,8 +7,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Loader2, Save, Upload, Building2 } from 'lucide-react';
+import { Loader2, Save, Upload, Building2, AlertTriangle, RotateCcw } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface CompanySettings {
   id: string;
@@ -29,6 +39,8 @@ const Settings = () => {
   const [settings, setSettings] = useState<CompanySettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const { toast } = useToast();
@@ -100,6 +112,50 @@ const Settings = () => {
         description: 'Impossible de télécharger le logo',
       });
       return null;
+    }
+  };
+
+  const handleResetData = async () => {
+    setIsResetting(true);
+    try {
+      // Supprimer les clôtures
+      const { error: closureError } = await supabase
+        .from('closing_transfers')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      if (closureError) throw closureError;
+
+      // Supprimer les transactions
+      const { error: ledgerError } = await supabase
+        .from('ledger')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      if (ledgerError) throw ledgerError;
+
+      // Supprimer les soldes de départ
+      const { error: balanceError } = await supabase
+        .from('starting_balances')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      if (balanceError) throw balanceError;
+
+      toast({
+        title: 'Succès',
+        description: 'Toutes les données ont été réinitialisées avec succès',
+      });
+
+      setShowResetDialog(false);
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: error.message || 'Impossible de réinitialiser les données',
+      });
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -354,6 +410,46 @@ const Settings = () => {
           </CardContent>
         </Card>
 
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Zone dangereuse
+            </CardTitle>
+            <CardDescription>
+              Actions irréversibles qui affectent les données de l'application
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <h3 className="font-medium">Réinitialiser les données</h3>
+                <p className="text-sm text-muted-foreground">
+                  Supprime tous les soldes, transactions et clôtures. Cette action est irréversible.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => setShowResetDialog(true)}
+                disabled={isResetting}
+              >
+                {isResetting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Réinitialisation...
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Réinitialiser
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="flex justify-end">
           <Button type="submit" disabled={isSaving} size="lg">
             {isSaving ? (
@@ -370,6 +466,47 @@ const Settings = () => {
           </Button>
         </div>
       </form>
+
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Êtes-vous absolument sûr ?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Cette action va supprimer de manière <strong>permanente</strong> :
+              </p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>Tous les soldes de départ</li>
+                <li>Toutes les transactions du journal</li>
+                <li>Toutes les clôtures enregistrées</li>
+              </ul>
+              <p className="text-destructive font-medium mt-4">
+                Cette action est irréversible et ne peut pas être annulée.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isResetting}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResetData}
+              disabled={isResetting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isResetting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Réinitialisation...
+                </>
+              ) : (
+                'Oui, réinitialiser toutes les données'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
