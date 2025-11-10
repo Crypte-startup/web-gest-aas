@@ -96,7 +96,7 @@ const handlePrintOne = (client: any, settings: any) => {
           
           body { 
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            padding: 40px; 
+            padding: 20px; 
             max-width: 900px; 
             margin: 0 auto;
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
@@ -110,9 +110,14 @@ const handlePrintOne = (client: any, settings: any) => {
             overflow: hidden;
           }
           
+          @page {
+            size: A4;
+            margin: 10mm;
+          }
+          
           .header-banner {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 30px;
+            padding: 15px 25px;
             color: white;
             position: relative;
             overflow: hidden;
@@ -123,8 +128,8 @@ const handlePrintOne = (client: any, settings: any) => {
             position: absolute;
             top: -50%;
             right: -10%;
-            width: 300px;
-            height: 300px;
+            width: 200px;
+            height: 200px;
             background: rgba(255,255,255,0.1);
             border-radius: 50%;
           }
@@ -144,24 +149,24 @@ const handlePrintOne = (client: any, settings: any) => {
           }
           
           .logo { 
-            width: 100px; 
+            width: 70px; 
             height: auto;
             background: white;
-            padding: 10px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 6px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
           }
           
           .company-name {
-            font-size: 24px;
+            font-size: 18px;
             font-weight: 700;
             text-shadow: 0 2px 4px rgba(0,0,0,0.2);
           }
           
           .company-info { 
             text-align: right;
-            font-size: 11px;
-            line-height: 1.8;
+            font-size: 9px;
+            line-height: 1.5;
             opacity: 0.95;
           }
           
@@ -171,148 +176,202 @@ const handlePrintOne = (client: any, settings: any) => {
           }
           
           .document-header {
-            padding: 30px;
+            padding: 15px 25px;
             background: linear-gradient(to right, #f8f9fa, #ffffff);
-            border-bottom: 3px solid #667eea;
+            border-bottom: 2px solid #667eea;
           }
           
           .document-title { 
             text-align: center;
-            font-size: 32px;
+            font-size: 22px;
             font-weight: 700;
             color: #2d3748;
-            letter-spacing: 2px;
+            letter-spacing: 1.5px;
             text-transform: uppercase;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
           }
           
           .print-date { 
             text-align: center;
             color: #718096;
-            font-size: 13px;
+            font-size: 10px;
             font-weight: 500;
           }
           
           .content-wrapper {
-            padding: 40px;
+            padding: 20px 25px;
           }
           
           .client-photo-section { 
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 15px;
             position: relative;
           }
           
           .photo-frame {
             display: inline-block;
             position: relative;
-            padding: 8px;
+            padding: 4px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border-radius: 50%;
           }
           
           .client-photo { 
-            width: 180px;
-            height: 180px;
+            width: 100px;
+            height: 100px;
             border-radius: 50%;
             object-fit: cover;
-            border: 6px solid white;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            border: 3px solid white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
           }
           
           .info-sections {
             display: grid;
-            gap: 30px;
+            gap: 12px;
           }
           
           .info-section {
             background: #f8f9fa;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-radius: 8px;
+            padding: 12px 15px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+            page-break-inside: avoid;
           }
           
           .section-title {
-            font-size: 18px;
+            font-size: 13px;
             font-weight: 600;
             color: #667eea;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
             border-bottom: 2px solid #667eea;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
           }
           
           .section-icon {
-            width: 24px;
-            height: 24px;
+            width: 18px;
+            height: 18px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border-radius: 6px;
-            font-size: 14px;
+            border-radius: 4px;
+            font-size: 11px;
             font-weight: 700;
           }
           
           .info-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
+            gap: 10px;
           }
           
           .info-item {
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 3px;
           }
           
           .info-label { 
             font-weight: 600;
-            font-size: 12px;
+            font-size: 9px;
             color: #718096;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
           }
           
           .info-value { 
-            font-size: 15px;
+            font-size: 12px;
             color: #2d3748;
             font-weight: 500;
-            padding: 8px 12px;
+            padding: 6px 10px;
             background: white;
-            border-radius: 6px;
-            border-left: 3px solid #667eea;
+            border-radius: 4px;
+            border-left: 2px solid #667eea;
           }
           
           .footer { 
-            margin-top: 40px;
-            padding: 25px;
+            margin-top: 15px;
+            padding: 12px;
             background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
             color: white;
             text-align: center;
-            font-size: 12px;
-            line-height: 1.8;
+            font-size: 9px;
+            line-height: 1.5;
           }
           
           .footer strong {
             display: block;
-            font-size: 13px;
-            margin-bottom: 5px;
+            font-size: 10px;
+            margin-bottom: 3px;
             color: #a0aec0;
           }
           
           @media print {
             body { 
-              background: white;
-              padding: 0;
+              background: white !important;
+              padding: 0 !important;
+              margin: 0 !important;
             }
-            button { display: none; }
+            
+            button { 
+              display: none !important; 
+            }
+            
             .container {
-              box-shadow: none;
-              border-radius: 0;
+              box-shadow: none !important;
+              border-radius: 0 !important;
+              page-break-after: avoid !important;
+            }
+            
+            .header-banner {
+              padding: 12px 20px !important;
+            }
+            
+            .header-banner::before {
+              display: none;
+            }
+            
+            .logo {
+              width: 60px !important;
+            }
+            
+            .company-name {
+              font-size: 16px !important;
+            }
+            
+            .document-header {
+              padding: 12px 20px !important;
+            }
+            
+            .document-title {
+              font-size: 20px !important;
+            }
+            
+            .content-wrapper {
+              padding: 15px 20px !important;
+            }
+            
+            .client-photo {
+              width: 90px !important;
+              height: 90px !important;
+            }
+            
+            .info-sections {
+              gap: 10px !important;
+            }
+            
+            .info-section {
+              padding: 10px 12px !important;
+              page-break-inside: avoid !important;
+            }
+            
+            .footer {
+              margin-top: 10px !important;
+              padding: 10px !important;
             }
           }
         </style>
