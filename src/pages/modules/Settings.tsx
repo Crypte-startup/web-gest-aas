@@ -35,6 +35,12 @@ interface CompanySettings {
   logo_url: string | null;
 }
 
+interface DataStats {
+  ledgerCount: number;
+  closuresCount: number;
+  balancesCount: number;
+}
+
 const Settings = () => {
   const [settings, setSettings] = useState<CompanySettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,13 +49,17 @@ const Settings = () => {
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [stats, setStats] = useState<DataStats>({ ledgerCount: 0, closuresCount: 0, balancesCount: 0 });
   const { toast } = useToast();
   const { user } = useAuth();
   const { isAdmin } = useUserRole(user?.id);
 
   useEffect(() => {
     fetchSettings();
-  }, []);
+    if (isAdmin) {
+      fetchStats();
+    }
+  }, [isAdmin]);
 
   const fetchSettings = async () => {
     try {
@@ -71,6 +81,24 @@ const Settings = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const [ledgerRes, closuresRes, balancesRes] = await Promise.all([
+        supabase.from('ledger').select('id', { count: 'exact', head: true }),
+        supabase.from('closing_transfers').select('id', { count: 'exact', head: true }),
+        supabase.from('starting_balances').select('id', { count: 'exact', head: true }),
+      ]);
+
+      setStats({
+        ledgerCount: ledgerRes.count || 0,
+        closuresCount: closuresRes.count || 0,
+        balancesCount: balancesRes.count || 0,
+      });
+    } catch (error: any) {
+      console.error('Error fetching stats:', error);
     }
   };
 
@@ -118,7 +146,32 @@ const Settings = () => {
   const handleResetData = async () => {
     setIsResetting(true);
     try {
-      // Supprimer les clôtures
+      // 1. Créer un backup avant de supprimer
+      const [ledgerData, closuresData, balancesData] = await Promise.all([
+        supabase.from('ledger').select('*'),
+        supabase.from('closing_transfers').select('*'),
+        supabase.from('starting_balances').select('*'),
+      ]);
+
+      // Sauvegarder les données
+      const { error: backupError } = await supabase
+        .from('data_backups')
+        .insert({
+          created_by: user?.id,
+          ledger_data: ledgerData.data || [],
+          closing_transfers_data: closuresData.data || [],
+          starting_balances_data: balancesData.data || [],
+          stats: {
+            ledgerCount: ledgerData.data?.length || 0,
+            closuresCount: closuresData.data?.length || 0,
+            balancesCount: balancesData.data?.length || 0,
+          },
+          notes: 'Backup automatique avant réinitialisation',
+        });
+
+      if (backupError) throw backupError;
+
+      // 2. Supprimer les clôtures
       const { error: closureError } = await supabase
         .from('closing_transfers')
         .delete()
@@ -126,7 +179,7 @@ const Settings = () => {
 
       if (closureError) throw closureError;
 
-      // Supprimer les transactions
+      // 3. Supprimer les transactions
       const { error: ledgerError } = await supabase
         .from('ledger')
         .delete()
@@ -134,7 +187,7 @@ const Settings = () => {
 
       if (ledgerError) throw ledgerError;
 
-      // Supprimer les soldes de départ
+      // 4. Supprimer les soldes de départ
       const { error: balanceError } = await supabase
         .from('starting_balances')
         .delete()
@@ -144,10 +197,11 @@ const Settings = () => {
 
       toast({
         title: 'Succès',
-        description: 'Toutes les données ont été réinitialisées avec succès',
+        description: 'Toutes les données ont été réinitialisées avec succès. Un backup a été créé.',
       });
 
       setShowResetDialog(false);
+      fetchStats(); // Actualiser les stats
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -410,6 +464,31 @@ const Settings = () => {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader>
+            <CardTitle>Statistiques des données</CardTitle>
+            <CardDescription>
+              Vue d'ensemble des données actuellement dans le système
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Transactions</p>
+                <p className="text-2xl font-bold">{stats.ledgerCount}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Clôtures</p>
+                <p className="text-2xl font-bold">{stats.closuresCount}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Soldes de départ</p>
+                <p className="text-2xl font-bold">{stats.balancesCount}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="border-destructive/50 bg-destructive/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive">
@@ -425,7 +504,7 @@ const Settings = () => {
               <div className="space-y-1">
                 <h3 className="font-medium">Réinitialiser les données</h3>
                 <p className="text-sm text-muted-foreground">
-                  Supprime tous les soldes, transactions et clôtures. Cette action est irréversible.
+                  Supprime tous les soldes, transactions et clôtures. Un backup automatique sera créé.
                 </p>
               </div>
               <Button

@@ -281,6 +281,39 @@ export type Database = {
         }
         Relationships: []
       }
+      data_backups: {
+        Row: {
+          backup_date: string
+          closing_transfers_data: Json
+          created_by: string | null
+          id: string
+          ledger_data: Json
+          notes: string | null
+          starting_balances_data: Json
+          stats: Json
+        }
+        Insert: {
+          backup_date?: string
+          closing_transfers_data?: Json
+          created_by?: string | null
+          id?: string
+          ledger_data?: Json
+          notes?: string | null
+          starting_balances_data?: Json
+          stats?: Json
+        }
+        Update: {
+          backup_date?: string
+          closing_transfers_data?: Json
+          created_by?: string | null
+          id?: string
+          ledger_data?: Json
+          notes?: string | null
+          starting_balances_data?: Json
+          stats?: Json
+        }
+        Relationships: []
+      }
       devis: {
         Row: {
           client_id: string | null

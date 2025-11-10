@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserRole } from '@/hooks/useUserRole';
 import {
   Table,
   TableBody,
@@ -13,7 +14,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, FileText, AlertTriangle, Eye, Calendar } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Loader2, FileText, AlertTriangle, Eye, Calendar, Trash2 } from 'lucide-react';
 import { ClosureDetailDialog } from '@/components/comptabilite/ClosureDetailDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -42,11 +53,15 @@ interface ClosureTransfer {
 
 const ClosureReports = () => {
   const { user } = useAuth();
+  const { isAdmin } = useUserRole(user?.id);
   const { toast } = useToast();
   const [closures, setClosures] = useState<ClosureTransfer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedClosure, setSelectedClosure] = useState<ClosureTransfer | null>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [closureToDelete, setClosureToDelete] = useState<ClosureTransfer | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [periodFilter, setPeriodFilter] = useState<string>('all');
   const [cashierFilter, setCashierFilter] = useState<string>('all');
   const [gapsOnlyFilter, setGapsOnlyFilter] = useState(false);
@@ -132,6 +147,42 @@ const ClosureReports = () => {
   const handleViewDetails = (closure: ClosureTransfer) => {
     setSelectedClosure(closure);
     setShowDetailDialog(true);
+  };
+
+  const handleDeleteClosure = (closure: ClosureTransfer) => {
+    setClosureToDelete(closure);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!closureToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('closing_transfers')
+        .delete()
+        .eq('id', closureToDelete.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Succès',
+        description: 'La clôture a été supprimée avec succès',
+      });
+
+      setShowDeleteDialog(false);
+      setClosureToDelete(null);
+      fetchClosures();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: error.message || 'Impossible de supprimer la clôture',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   // Calcul des statistiques
@@ -345,14 +396,26 @@ const ClosureReports = () => {
                           )}
                         </TableCell>
                         <TableCell className="text-center">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleViewDetails(closure)}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Détails
-                          </Button>
+                          <div className="flex items-center justify-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleViewDetails(closure)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              Détails
+                            </Button>
+                            {isAdmin && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteClosure(closure)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -372,6 +435,49 @@ const ClosureReports = () => {
           closure={selectedClosure}
         />
       )}
+
+      {/* Dialog de confirmation de suppression */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Confirmer la suppression
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette clôture du{' '}
+              <strong>
+                {closureToDelete && new Date(closureToDelete.closing_date).toLocaleDateString('fr-FR')}
+              </strong>
+              {' '}pour le caissier{' '}
+              <strong className="capitalize">{closureToDelete?.cashier_role}</strong> ?
+              <br />
+              <br />
+              Cette action est irréversible et supprimera définitivement cet enregistrement.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={isDeleting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Suppression...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Supprimer
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
