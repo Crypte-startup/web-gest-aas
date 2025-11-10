@@ -212,26 +212,7 @@ const SupervisorSession = () => {
       const selectedCashier = cashiers.find(c => c.user_id === data.caissier_id);
       const transferId = `OPENING-${Date.now()}`;
 
-      // Vérifier qu'aucun solde d'ouverture n'existe déjà aujourd'hui pour ce caissier/devise
-      const today = new Date().toISOString().split('T')[0];
-      const { data: todayOpening } = await supabase
-        .from('ledger')
-        .select('id')
-        .eq('account_owner', data.caissier_id)
-        .eq('currency', data.currency)
-        .like('entry_id', 'OPENING-%')
-        .gte('created_at', today)
-        .maybeSingle();
-
-      if (todayOpening) {
-        toast({
-          variant: 'destructive',
-          title: 'Erreur',
-          description: `Ce caissier a déjà reçu un solde d'ouverture en ${data.currency} aujourd'hui`,
-        });
-        setIsSubmitting(false);
-        return;
-      }
+      // Permettre l'ajout de soldes multiples - pas de vérification restrictive
 
       // Transaction 1: Dépense pour resp_compta (diminue son solde)
       const { error: expenseError } = await supabase

@@ -184,13 +184,13 @@ const ApprovalList = () => {
         </head>
         <body>
           <div class="header">
-            <img src="/logo.png" alt="Logo" class="logo" />
+            ${settings?.logo_url ? `<img src="${settings.logo_url}" alt="Logo" class="logo" />` : `<img src="/logo.png" alt="Logo" class="logo" />`}
             <div class="company-info">
-              <strong>RCCM :</strong> CD/LSI/RCCM/24-B-745<br/>
-              <strong>ID.NAT :</strong> 05-H4901-N70222J<br/>
-              <strong>NIF :</strong> A2434893E<br/>
-              <strong>TELEPHONE :</strong> +243 82 569 21 21<br/>
-              <strong>MAIL :</strong> info@amarachamsarl.com
+              <strong>RCCM :</strong> ${settings?.rccm || 'CD/LSI/RCCM/24-B-745'}<br/>
+              <strong>ID.NAT :</strong> ${settings?.id_nat || '05-H4901-N70222J'}<br/>
+              <strong>NIF :</strong> ${settings?.nif || 'A2434893E'}<br/>
+              <strong>TELEPHONE :</strong> ${settings?.phone || '+243 82 569 21 21'}<br/>
+              <strong>MAIL :</strong> ${settings?.email || 'info@amarachamsarl.com'}
             </div>
           </div>
           
@@ -207,9 +207,9 @@ const ApprovalList = () => {
           </div>
           
           <div class="footer">
-            <strong>ADRESSE :</strong> 1144 avenue maître mawanga<br/>
-            Quartier Ile du golf, Commune de Likasi, Haut Katanga,<br/>
-            République Démocratique du Congo
+            <strong>ADRESSE :</strong> ${settings?.address || '1144 avenue maître mawanga'}<br/>
+            ${settings?.city || 'Quartier Ile du golf, Commune de Likasi'}, ${settings?.province || 'Haut Katanga'},<br/>
+            ${settings?.country || 'République Démocratique du Congo'}
           </div>
           
           <button onclick="window.print()">Imprimer</button>
